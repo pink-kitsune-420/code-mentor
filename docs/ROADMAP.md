@@ -13,9 +13,9 @@
 
 ---
 
-## Completed Milestones
+## Completed Milestones (`v0.1.0-alpha`)
 
-### Milestone 1 — Dockable Live Execution Stepper & AST Glossary (`v0.1.0-alpha`)
+### Milestone 1 — Dockable Live Execution Stepper & AST Glossary
 - Isolated `python -I` subprocess tracer with step caps (`500`), timeouts (`3.0s`), `stdout` capping, and numerical diff deltas.
 - Visual Memory Boxes (gauges, indexed list strips, dict cards, and 2D grids with live cursor tracking).
 - Resizable, drag-to-swap 5-window IDE cockpit (`Visual State`, `Flow, Loops & Stack`, `Code Spotlight`, `Output Terminal`, `AI Mentor & Glossary`).

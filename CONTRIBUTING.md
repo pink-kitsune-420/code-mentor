@@ -12,7 +12,7 @@ uv sync --group dev
 Run backend + frontend dev servers in two terminals:
 
 ```bash
-uv run uvicorn mentor.app:app --reload --port 8090
+uv run code-mentor --reload
 ```
 
 ```bash
