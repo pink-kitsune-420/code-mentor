@@ -39,8 +39,13 @@
 
 ---
 
+### Milestone 5 — Cross-Language Transfer, Live Call Trees & Read Aloud (Completed)
+- **Cross-Language Rosetta Bridges:** Curated offline `Python <-> TypeScript` and `Python <-> Rust` side-by-side comparison packs in Learn & Quiz mode (`lessons/rosetta_typescript.json`, `lessons/rosetta_rust.json`), plus optional AI snippet translation (`To TypeScript` / `To Rust` via `POST /api/translate-snippet`) when online.
+- **Live Interactive Call-Tree Diagram:** Deterministic call-tree builder (`buildCallTree`) in Flow & Loops (`[Call Tree | Stack | Loops & Lines]`) highlighting the active frame, green return badges (`-> val`), and click-to-jump stepping.
+- **Browser Read Aloud:** Lightweight zero-download `window.speechSynthesis` helper (`Read` / `Read Aloud` / `Stop`) on AI replies and lesson walkthroughs, automatically hidden when unsupported.
+
 ## Upcoming Milestones
 
-### Milestone 5 — Voice Walkthroughs & Multi-Language Transfer
-- **Optional Voice Tutor:** Hands-free speech input (Whisper STT) and diagram/step narration (Kokoro/Piper TTS).
-- **Cross-Language Rosetta Bridges:** Side-by-side Python → TypeScript and Python → Rust conceptual views (translating familiar mental models into typed and compiled languages).
+### Milestone 6 — Deeper Voice & Collaboration
+- **Optional Local Voice Tutor:** Hands-free speech input (Whisper STT) and offline neural narration (Kokoro/Piper TTS).
+- **Interactive Memory Aliasing & Heap Graph:** Expanded object-reference arrows for nested mutable structures across frames.

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import uuid
 from contextlib import asynccontextmanager
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -44,6 +45,7 @@ from mentor.llm_client import (
     explain_trace_step,
     generate_lesson_draft_with_ai,
     grade_plain_english_with_ai,
+    translate_snippet_with_ai,
 )
 from mentor.presets import PresetLesson, get_presets
 from mentor.tracer import TraceFrame, TraceResult, trace_python_code
@@ -128,6 +130,12 @@ class ComplexityRunRequest(BaseModel):
     n: int
 
 
+class TranslateSnippetRequest(BaseModel):
+    code: str
+    target_lang: Literal["TypeScript", "Rust"]
+    model: str | None = None
+
+
 def _public_ai_config(cfg: dict[str, object]) -> AiConfigPublic:
     return AiConfigPublic(
         enabled=bool(cfg["enabled"]),
@@ -209,6 +217,16 @@ async def explain_step_endpoint(req: ExplainStepRequest) -> dict[str, str | bool
         code=req.code,
         frame=req.frame,
         question=req.question,
+        model=req.model,
+    )
+
+
+@app.post("/api/translate-snippet")
+async def translate_snippet_endpoint(req: TranslateSnippetRequest) -> dict[str, object]:
+    """Translate a Python snippet into TypeScript or Rust with AI notes."""
+    return await translate_snippet_with_ai(
+        code=req.code,
+        target_lang=req.target_lang,
         model=req.model,
     )
 

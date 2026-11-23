@@ -10,6 +10,8 @@ import {
   Play,
   Plus,
   RotateCcw,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import type {
   CurriculumModule,
@@ -21,6 +23,7 @@ import type {
   ReviewQueueResponse,
 } from "../types/curriculum";
 import { highlightPythonLine } from "../utils/pythonHighlight";
+import { isSpeechSupported, speakText, stopSpeech } from "../utils/speech";
 import { LessonStudioModal } from "./LessonStudioModal";
 import { QuizCard } from "./QuizCard";
 import { StepCountLab } from "./StepCountLab";
@@ -47,6 +50,15 @@ export function LearnModeView({
   const [loading, setLoading] = useState(true);
   const [studioOpen, setStudioOpen] = useState(false);
   const [editingModule, setEditingModule] = useState<CurriculumModule | null>(null);
+  const [speakingLesson, setSpeakingLesson] = useState(false);
+  const speechReady = isSpeechSupported();
+
+  useEffect(() => {
+    stopSpeech();
+    setSpeakingLesson(false);
+  }, [selectedId]);
+
+  useEffect(() => () => stopSpeech(), []);
 
   const refreshReview = useCallback(async () => {
     try {
@@ -415,6 +427,25 @@ export function LearnModeView({
                       </button>
                     </>
                   )}
+                  {speechReady && (
+                    <button
+                      className="icon-btn"
+                      onClick={() => {
+                        if (speakingLesson) {
+                          stopSpeech();
+                          setSpeakingLesson(false);
+                        } else {
+                          const script = `${activeModule.title}. ${activeModule.subtitle}. ${activeModule.lesson_points.join(" ")}`;
+                          setSpeakingLesson(true);
+                          speakText(script, () => setSpeakingLesson(false));
+                        }
+                      }}
+                      title={speakingLesson ? "Stop reading" : "Read lesson aloud"}
+                    >
+                      {speakingLesson ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                      {speakingLesson ? "Stop" : "Read Aloud"}
+                    </button>
+                  )}
                   <button
                     className="icon-btn primary"
                     onClick={() => onOpenInStepper(activeModule.example_code)}
@@ -476,6 +507,32 @@ export function LearnModeView({
                   <li key={pt}>{pt}</li>
                 ))}
               </ul>
+
+              {activeModule.rosetta_pairs && activeModule.rosetta_pairs.length > 0 && (
+                <div className="rosetta-section">
+                  <div className="subcard-title" style={{ marginBottom: "6px" }}>
+                    Cross-Language Rosetta Bridge
+                  </div>
+                  <div className="rosetta-list">
+                    {activeModule.rosetta_pairs.map((pair) => (
+                      <div key={pair.concept} className="rosetta-card">
+                        <div className="rosetta-concept">{pair.concept}</div>
+                        <div className="rosetta-cols">
+                          <div className="rosetta-col">
+                            <span className="rosetta-lang">Python</span>
+                            <pre className="rosetta-code">{pair.python_code}</pre>
+                          </div>
+                          <div className="rosetta-col">
+                            <span className="rosetta-lang target">{pair.target_lang}</span>
+                            <pre className="rosetta-code">{pair.target_code}</pre>
+                          </div>
+                        </div>
+                        <p className="rosetta-note">{pair.note}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="lesson-example-card">
                 <div className="subcard-title" style={{ marginBottom: "6px" }}>

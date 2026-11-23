@@ -19,6 +19,14 @@ export interface QuizQuestion {
 export type DifficultyLevel = "Beginner" | "Intermediate" | "Advanced" | "Expert";
 export type LessonSource = "builtin" | "pack" | "custom";
 
+export interface RosettaPair {
+  concept: string;
+  python_code: string;
+  target_lang: "TypeScript" | "Rust";
+  target_code: string;
+  note: string;
+}
+
 export interface CurriculumModule {
   id: string;
   track: string;
@@ -32,6 +40,7 @@ export interface CurriculumModule {
   concepts: string[];
   lesson_points: string[];
   example_code: string;
+  rosetta_pairs?: RosettaPair[];
   quizzes: QuizQuestion[];
 }
 

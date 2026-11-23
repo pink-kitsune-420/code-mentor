@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, BookOpen, Settings, Sparkles } from "lucide-react";
+import { AlertTriangle, BookOpen, Settings, Sparkles, Volume2, VolumeX } from "lucide-react";
 import type { GlossarySpan, TraceFrame } from "../types/trace";
+import { isSpeechSupported, speakText, stopSpeech } from "../utils/speech";
 
 interface MentorGlossaryTabProps {
   code: string;
@@ -27,8 +28,12 @@ export function MentorGlossaryTab({
 }: MentorGlossaryTabProps) {
   const [question, setQuestion] = useState("");
   const [model, setModel] = useState(defaultModel);
-  const [explanation, setExplanation] = useState<{ text: string; step: number } | null>(null);
+  const [explanation, setExplanation] = useState<{ text: string; step: number; label?: string } | null>(
+    null
+  );
   const [loading, setLoading] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const speechReady = isSpeechSupported();
 
   useEffect(() => {
     setModel(defaultModel);
@@ -36,7 +41,11 @@ export function MentorGlossaryTab({
 
   useEffect(() => {
     setExplanation(null);
+    stopSpeech();
+    setSpeaking(false);
   }, [code]);
+
+  useEffect(() => () => stopSpeech(), []);
 
   const modelChoices =
     availableModels.length > 0
@@ -50,6 +59,8 @@ export function MentorGlossaryTab({
   async function askNarrator(customPrompt?: string) {
     if (!frame) return;
     setLoading(true);
+    stopSpeech();
+    setSpeaking(false);
     try {
       const resp = await fetch("/api/explain-step", {
         method: "POST",
@@ -70,6 +81,37 @@ export function MentorGlossaryTab({
       setExplanation({
         text: `Failed to reach mentor backend: ${String(err)}`,
         step: frame.step,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function translateSnippet(targetLang: "TypeScript" | "Rust") {
+    if (!code.trim()) return;
+    setLoading(true);
+    stopSpeech();
+    setSpeaking(false);
+    try {
+      const resp = await fetch("/api/translate-snippet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          target_lang: targetLang,
+          model: selectedModel,
+        }),
+      });
+      const data = (await resp.json()) as { translation?: string };
+      setExplanation({
+        text: data.translation ?? "No translation returned.",
+        step: frame?.step ?? 0,
+        label: `Python → ${targetLang} Bridge`,
+      });
+    } catch (err) {
+      setExplanation({
+        text: `Failed to reach mentor backend: ${String(err)}`,
+        step: frame?.step ?? 0,
       });
     } finally {
       setLoading(false);
@@ -128,6 +170,20 @@ export function MentorGlossaryTab({
           >
             Why this line next?
           </button>
+          <button
+            className="jump-pill"
+            disabled={loading || !aiEnabled || !code.trim()}
+            onClick={() => void translateSnippet("TypeScript")}
+          >
+            To TypeScript
+          </button>
+          <button
+            className="jump-pill"
+            disabled={loading || !aiEnabled || !code.trim()}
+            onClick={() => void translateSnippet("Rust")}
+          >
+            To Rust
+          </button>
         </div>
 
         <div className="narrator-controls">
@@ -162,11 +218,35 @@ export function MentorGlossaryTab({
 
         {explanation && (
           <div className="narrator-reply-wrap">
-            {frame && explanation.step !== frame.step && (
-              <div className="stale-step-note">
-                Answered for Step {explanation.step + 1} (now viewing Step {frame.step + 1})
-              </div>
-            )}
+            <div className="subcard-header-row">
+              {explanation.label ? (
+                <div className="stale-step-note">{explanation.label}</div>
+              ) : frame && explanation.step !== frame.step ? (
+                <div className="stale-step-note">
+                  Answered for Step {explanation.step + 1} (now viewing Step {frame.step + 1})
+                </div>
+              ) : (
+                <span />
+              )}
+              {speechReady && (
+                <button
+                  className="icon-btn-sm"
+                  onClick={() => {
+                    if (speaking) {
+                      stopSpeech();
+                      setSpeaking(false);
+                    } else {
+                      setSpeaking(true);
+                      speakText(explanation.text, () => setSpeaking(false));
+                    }
+                  }}
+                  title={speaking ? "Stop reading" : "Read response aloud"}
+                >
+                  {speaking ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                  {speaking ? "Stop" : "Read"}
+                </button>
+              )}
+            </div>
             <div className="narrator-reply">{explanation.text}</div>
             <div className="ai-inline-warning">
               <AlertTriangle size={12} className="disclaimer-icon" />

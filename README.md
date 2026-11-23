@@ -9,7 +9,9 @@ An open-source, local-first **Beginner → Expert Visual Code Tutor**. It helps 
 
 ## Features
 
-- **Topic-Based Skill Catalog & Zero-Typing Quizzes:** Explore programming topics freely (`Beginner` → `Expert`) across `Foundations`, `Algorithms & Patterns`, `Architecture & Patterns`, `Reliability & Testing`, `Python Deep Dive`, and `Real-World Code Review`—plus an optional 5-minute Skill Check and a **Daily Review** queue that prioritizes weak spots.
+- **Topic-Based Skill Catalog & Zero-Typing Quizzes:** Explore programming topics freely (`Beginner` → `Expert`) across `Foundations`, `Algorithms & Patterns`, `Architecture & Patterns`, `Reliability & Testing`, `Python Deep Dive`, `Real-World Code Review`, and `Cross-Language Bridges`—plus an optional 5-minute Skill Check and a **Daily Review** queue that prioritizes weak spots.
+- **Cross-Language Rosetta Bridges & Read Aloud:** Compare `Python <-> TypeScript` and `Python <-> Rust` side-by-side in offline packs (or translate snippets via `To TypeScript` / `To Rust` when local AI is online), and listen to AI replies or lessons via browser Read Aloud.
+- **Live Interactive Call-Tree & Trace Inspector:** Step through execution with `[Call Tree | Stack | Loops & Lines]`, inspect return values directly on tree nodes with click-to-jump navigation, and trace variables across stack frames.
 - **Step-Count Complexity Lab:** Compare algorithm pairs (`Linear vs. Binary Search`, `Nested Loops vs. Hash Set`, `Recursive vs. Memoized Fibonacci`) across input sizes `N` using real execution step counts.
 - **Lesson Creator Studio & Shareable Packs:** Click **+ Create / Import** in Learn & Quiz mode to author custom lessons manually or draft them with AI (with 1-click **Verify in Tracer** and auto-repair), and export/import portable `.json` lesson packs.
 - **Deterministic Live Execution Stepper:** Runs Python snippets in an isolated subprocess (`python -I`) with step limits and timeouts—recording exact line-by-line state without AI guessing.

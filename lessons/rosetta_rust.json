@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "module": {
+    "id": "pack_rosetta_rust",
+    "track": "Cross-Language Bridges",
+    "difficulty": "Advanced",
+    "source": "pack",
+    "tier": 4,
+    "order": 9,
+    "title": "Python -> Rust Bridge",
+    "subtitle": "Translating Python classes, None, and exceptions into Rust structs, Option, and Result",
+    "prerequisites": ["pack_classes_and_objects", "pack_defensive_exceptions"],
+    "concepts": ["struct vs class", "let vs let mut", "Option<T>", "Result<T, E>"],
+    "lesson_points": [
+      "Rust compiles ahead of time to fast native machine code—it has no garbage collector, so it tracks who owns each value.",
+      "Variables in Rust are immutable by default ('let x = 5'); you must opt into changes with 'let mut x = 5'.",
+      "Instead of Python's 'None' or raising exceptions, Rust returns 'Option<T>' (Some/None) and 'Result<T, E>' (Ok/Err)."
+    ],
+    "example_code": "def safe_divide(a, b):\n    if b == 0:\n        return None\n    return a / b\n\nfor denom in [2, 0]:\n    res = safe_divide(10, denom)\n    if res is None:\n        print(\"Err: division by zero\")\n    else:\n        print(\"Ok:\", res)\n",
+    "rosetta_pairs": [
+      {
+        "concept": "Immutable by Default",
+        "python_code": "fuel = 50\nfuel -= 10",
+        "target_lang": "Rust",
+        "target_code": "let mut fuel = 50;\nfuel -= 10;",
+        "note": "In Rust, forgetting 'mut' refuses to compile if you try to reassign or mutate 'fuel'."
+      },
+      {
+        "concept": "Class Data -> Struct",
+        "python_code": "class Ship:\n    def __init__(self, fuel):\n        self.fuel = fuel",
+        "target_lang": "Rust",
+        "target_code": "struct Ship {\n    fuel: i32,\n}",
+        "note": "Rust separates data fields ('struct') from methods ('impl Ship { ... }')."
+      },
+      {
+        "concept": "None / Exceptions -> Option & Result",
+        "python_code": "if b == 0:\n    return None\nreturn a / b",
+        "target_lang": "Rust",
+        "target_code": "fn safe_div(a: f64, b: f64) -> Option<f64> {\n    if b == 0.0 { None } else { Some(a / b) }\n}",
+        "note": "Rust forces the caller to match Some(val) vs None—null-pointer crashes cannot slip through."
+      }
+    ],
+    "quizzes": [
+      {
+        "id": "rs_predict",
+        "kind": "predict",
+        "title": "Option-Style Safe Return",
+        "prompt": "Following Rust's explicit None/Some pattern, what prints when denom = 0?",
+        "code": "def safe_div(a, b):\n    if b == 0:\n        return None\n    return a / b\n\nans = safe_div(10, 0)\nprint(\"Empty\" if ans is None else ans)\n",
+        "options": ["ZeroDivisionError", "Empty", "None", "0"],
+        "correct_index": 1,
+        "explanation": "safe_div(10, 0) returns None cleanly instead of crashing, so the ternary prints 'Empty'."
+      },
+      {
+        "id": "rs_spot_bug",
+        "kind": "spot_bug",
+        "title": "Spot the Unhandled None",
+        "prompt": "Click the line that crashes because the caller assumed safe_div() always returns a number (what Rust's Option<T> blocks at compile time!).",
+        "code": "def safe_div(a, b):\n    return None if b == 0 else a / b\n\nval = safe_div(10, 0)\nprint(val + 1)\n",
+        "correct_line": 5,
+        "explanation": "Line 5 tries to add 1 to None (TypeError), whereas Rust's Option<f64> forces handling None first."
+      },
+      {
+        "id": "rs_explain",
+        "kind": "explain",
+        "title": "Why Make Variables Immutable by Default?",
+        "prompt": "Why does Rust require 'let mut' whenever you want a variable to change later?",
+        "code": "let fuel = 50; // cannot mutate unless 'let mut'",
+        "rubric_keywords": ["accidental", "intent", "safe", "change", "bug", "clear", "read", "explicit", "mutate"],
+        "sample_explanation": "Requiring 'mut' makes every mutation explicit so readers immediately see which values can change and prevents accidental state bugs.",
+        "explanation": "Explicit mutability reduces hidden side effects when reading or refactoring larger programs."
+      }
+    ]
+  }
+}

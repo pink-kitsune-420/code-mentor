@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import uuid
+from typing import Literal
 
 import httpx
 
@@ -391,3 +392,70 @@ async def generate_lesson_draft_with_ai(
         "verification": verification.model_dump(),
         "repaired": repaired,
     }
+
+
+async def translate_snippet_with_ai(
+    *,
+    code: str,
+    target_lang: Literal["TypeScript", "Rust"],
+    model: str | None = None,
+) -> dict[str, object]:
+    """Translate a Python snippet into TypeScript or Rust with a short conceptual note."""
+    cfg = get_ai_config()
+    if not bool(cfg["enabled"]):
+        return {
+            "ok": False,
+            "target_lang": target_lang,
+            "model": "",
+            "translation": "AI Narrator is turned off in AI Settings.",
+        }
+
+    v1_base = normalize_v1_base(str(cfg["provider_url"]))
+    if not v1_base:
+        return {
+            "ok": False,
+            "target_lang": target_lang,
+            "model": "",
+            "translation": "No AI provider URL configured.",
+        }
+
+    chosen_model = model or str(cfg["default_model"])
+    key = str(cfg["api_key"])
+    system_msg = (
+        f"You are a clear programming mentor translating short Python snippets into clean idiomatic {target_lang}. "
+        f"Return: (1) a concise {target_lang} equivalent code block, followed by (2) 2 short bullet points "
+        f"highlighting the main syntax/type differences a Python learner should notice."
+    )
+    user_msg = f"PYTHON_CODE:\n{code}"
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                f"{v1_base}/chat/completions",
+                headers=_auth_headers(key),
+                json={
+                    "model": chosen_model,
+                    "messages": [
+                        {"role": "system", "content": system_msg},
+                        {"role": "user", "content": user_msg},
+                    ],
+                    "temperature": 0.2,
+                    "max_tokens": 500,
+                },
+            )
+            resp.raise_for_status()
+            raw_text = resp.json()["choices"][0]["message"]["content"]
+            text = strip_thinking_tags(raw_text) or raw_text.strip()
+            return {
+                "ok": True,
+                "target_lang": target_lang,
+                "model": chosen_model,
+                "translation": text,
+            }
+    except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
+        return {
+            "ok": False,
+            "target_lang": target_lang,
+            "model": chosen_model,
+            "translation": f"AI endpoint ({v1_base}) could not respond: {exc}",
+        }

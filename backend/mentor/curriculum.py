@@ -35,6 +35,16 @@ class QuizQuestion(BaseModel):
     explanation: str
 
 
+class RosettaPair(BaseModel):
+    """Side-by-side translation mapping a Python concept to TypeScript or Rust."""
+
+    concept: str
+    python_code: str
+    target_lang: Literal["TypeScript", "Rust"]
+    target_code: str
+    note: str
+
+
 class CurriculumModule(BaseModel):
     """An educational topic lesson anchored to interactive Stepper code."""
 
@@ -50,6 +60,7 @@ class CurriculumModule(BaseModel):
     concepts: list[str] = []
     lesson_points: list[str]
     example_code: str
+    rosetta_pairs: list[RosettaPair] = []
     quizzes: list[QuizQuestion] = []
 
 

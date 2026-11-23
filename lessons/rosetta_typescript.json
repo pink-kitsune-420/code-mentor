@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "module": {
+    "id": "pack_rosetta_typescript",
+    "track": "Cross-Language Bridges",
+    "difficulty": "Intermediate",
+    "source": "pack",
+    "tier": 3,
+    "order": 8,
+    "title": "Python -> TypeScript Bridge",
+    "subtitle": "Mapping Python dicts, lists, None, and functions to TypeScript interfaces & types",
+    "prerequisites": ["mod_1_state", "mod_3_functions"],
+    "concepts": ["interface vs dict", "let / const", "null | undefined", "type annotations"],
+    "lesson_points": [
+      "TypeScript looks like JavaScript with explicit type contracts checked before the code ever runs.",
+      "A Python dict schema becomes a TypeScript 'interface' or 'type' describing exact allowed keys.",
+      "Python's 'None' splits into 'null' or 'undefined', and TypeScript forces you to check for it with 'if (val !== null)'."
+    ],
+    "example_code": "def format_ship(ship):\n    if ship is None:\n        return \"No ship\"\n    return f\"{ship['name']}: {ship['fuel']} fuel\"\n\nactive = {\"name\": \"Valkyrie\", \"fuel\": 45}\nprint(format_ship(active))\nprint(format_ship(None))\n",
+    "rosetta_pairs": [
+      {
+        "concept": "Variables & Constants",
+        "python_code": "fuel = 50\nname = \"Valkyrie\"",
+        "target_lang": "TypeScript",
+        "target_code": "let fuel: number = 50;\nconst name: string = \"Valkyrie\";",
+        "note": "TypeScript uses 'let' (reassignable) or 'const' (fixed binding) plus ': type' hints."
+      },
+      {
+        "concept": "Dictionary Shape -> Interface",
+        "python_code": "ship = {\"name\": \"Nova\", \"fuel\": 50}",
+        "target_lang": "TypeScript",
+        "target_code": "interface Ship { name: string; fuel: number; }\nconst ship: Ship = { name: \"Nova\", fuel: 50 };",
+        "note": "An interface locks in field names and types so typos fail at compile time instead of runtime."
+      },
+      {
+        "concept": "Optional None -> Union Type",
+        "python_code": "def label(ship):\n    if ship is None:\n        return \"Empty\"",
+        "target_lang": "TypeScript",
+        "target_code": "function label(ship: Ship | null): string {\n  if (ship === null) return \"Empty\";\n  return ship.name;\n}",
+        "note": "Union types like 'Ship | null' force you to handle the missing case explicitly."
+      }
+    ],
+    "quizzes": [
+      {
+        "id": "ts_predict",
+        "kind": "predict",
+        "title": "Python Equivalent Output",
+        "prompt": "Just like the TypeScript 'ship: Ship | null' helper, what does format_ship(None) print?",
+        "code": "def format_ship(ship):\n    if ship is None:\n        return \"Offline\"\n    return ship[\"name\"]\n\nprint(format_ship(None))\n",
+        "options": ["Offline", "None", "KeyError", "Error"],
+        "correct_index": 0,
+        "explanation": "The guard 'if ship is None:' returns 'Offline' safely before touching ship['name']."
+      },
+      {
+        "id": "ts_spot_bug",
+        "kind": "spot_bug",
+        "title": "Spot the Missing Null Guard",
+        "prompt": "Click the line that crashes if 'ship' is None (the exact bug TypeScript union types prevent!).",
+        "code": "def read_fuel(ship):\n    fuel = ship[\"fuel\"]\n    if ship is None:\n        return 0\n    return fuel\n\nprint(read_fuel(None))\n",
+        "correct_line": 2,
+        "explanation": "Line 2 accesses ship['fuel'] BEFORE checking 'if ship is None:' on line 3."
+      },
+      {
+        "id": "ts_explain",
+        "kind": "explain",
+        "title": "Why Use Interfaces?",
+        "prompt": "Why does TypeScript ask you to declare 'interface Ship { name: string; fuel: number }' upfront?",
+        "code": "interface Ship { name: string; fuel: number; }",
+        "rubric_keywords": ["type", "catch", "typo", "compile", "before", "shape", "contract", "bug", "error"],
+        "sample_explanation": "Interfaces define the exact field names and types upfront so typos or wrong types are caught at compile time before the app runs.",
+        "explanation": "Compile-time structural contracts catch misspelled keys and wrong types immediately."
+      }
+    ]
+  }
+}

@@ -1822,6 +1822,172 @@ textarea {
   background: linear-gradient(90deg, #06b6d4, #10b981);
 }
 
+/* Live Call Tree & Cross-Language Rosetta Bridges */
+.flow-mode-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.call-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.tree-branch {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tree-children {
+  margin-left: 14px;
+  padding-left: 10px;
+  border-left: 1px dashed rgba(148, 163, 200, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tree-node-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+
+.tree-node-btn:hover {
+  border-color: var(--accent);
+}
+
+.tree-node-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: #fff;
+}
+
+.tree-node-btn.ancestor {
+  border-color: rgba(99, 102, 241, 0.45);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.tree-node-btn.done {
+  opacity: 0.85;
+}
+
+.tree-fn-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-meta-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.tree-ret-pill {
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--emerald-soft);
+  color: #6ee7b7;
+}
+
+.tree-step-pill {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.rosetta-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rosetta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rosetta-card {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--panel-elev);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rosetta-concept {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #c7d2fe;
+}
+
+.rosetta-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 720px) {
+  .rosetta-cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rosetta-col {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #080c18;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow-x: auto;
+}
+
+.rosetta-lang {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #93c5fd;
+}
+
+.rosetta-lang.target {
+  color: #67e8f9;
+}
+
+.rosetta-code {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.79rem;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.rosetta-note {
+  margin: 0;
+  font-size: 0.79rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 .lesson-links-row {
   display: flex;
   flex-wrap: wrap;
