@@ -17,11 +17,13 @@ export interface QuizQuestion {
 }
 
 export type DifficultyLevel = "Beginner" | "Intermediate" | "Advanced" | "Expert";
+export type LessonSource = "builtin" | "pack" | "custom";
 
 export interface CurriculumModule {
   id: string;
   track: string;
   difficulty: DifficultyLevel;
+  source?: LessonSource;
   tier: number;
   order: number;
   title: string;
@@ -31,6 +33,20 @@ export interface CurriculumModule {
   lesson_points: string[];
   example_code: string;
   quizzes: QuizQuestion[];
+}
+
+export interface LessonVerificationResult {
+  valid: boolean;
+  example_ok: boolean;
+  example_steps: number;
+  example_error: string | null;
+  quiz_errors: string[];
+  warnings: string[];
+}
+
+export interface LessonPack {
+  schema_version: number;
+  module: CurriculumModule;
 }
 
 export interface CurriculumProgress {

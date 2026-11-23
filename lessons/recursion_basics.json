@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "module": {
+    "id": "pack_recursion_basics",
+    "track": "Algorithms & Patterns",
+    "difficulty": "Intermediate",
+    "source": "pack",
+    "tier": 2,
+    "order": 1,
+    "title": "Recursion & the Call Stack",
+    "subtitle": "How a function calling itself builds and unwinds stack frames",
+    "prerequisites": ["mod_3_functions"],
+    "concepts": ["recursion", "base case", "recursive step", "call stack"],
+    "lesson_points": [
+      "Recursion happens when a function calls itself with a smaller input until it hits a stopping condition.",
+      "Every recursive function needs a base case (when to stop) so it doesn't loop forever.",
+      "Each nested call gets its own fresh local variables on the Call Stack, then unwinds back up on return."
+    ],
+    "example_code": "def sum_down(n):\n    if n <= 1:\n        return n\n    rest = sum_down(n - 1)\n    return n + rest\n\ntotal = sum_down(4)\nprint(\"Sum:\", total)\n",
+    "quizzes": [
+      {
+        "id": "rec_predict",
+        "kind": "predict",
+        "title": "Trace a Recursive Return",
+        "prompt": "What does countdown(3) print?",
+        "code": "def count_steps(n):\n    if n == 0:\n        return 0\n    return 1 + count_steps(n - 1)\n\nprint(count_steps(3))\n",
+        "options": ["0", "2", "3", "4"],
+        "correct_index": 2,
+        "explanation": "count_steps(3) -> 1 + count_steps(2) -> 1 + count_steps(1) -> 1 + count_steps(0) -> 1 + 1 + 1 + 0 = 3."
+      },
+      {
+        "id": "rec_spot_bug",
+        "kind": "spot_bug",
+        "title": "Spot the Infinite Recursion",
+        "prompt": "Click the line that stops the function from ever reaching its base case.",
+        "code": "def countdown(n):\n    if n <= 0:\n        return \"Done\"\n    print(n)\n    return countdown(n)\n\ncountdown(3)\n",
+        "correct_line": 5,
+        "explanation": "Line 5 calls countdown(n) with the exact same n instead of countdown(n - 1), so n never reaches 0."
+      },
+      {
+        "id": "rec_explain",
+        "kind": "explain",
+        "title": "Explain the Base Case",
+        "prompt": "Why does every recursive function require a base case before calling itself again?",
+        "code": "if n <= 1:\n    return n\n",
+        "rubric_keywords": ["stop", "infinite", "forever", "end", "stack", "overflow", "exit", "base"],
+        "sample_explanation": "The base case tells the function when to stop calling itself so the call stack can unwind instead of repeating forever.",
+        "explanation": "Without a stopping base case, recursive calls pile onto the Call Stack until Python raises RecursionError."
+      }
+    ]
+  }
+}

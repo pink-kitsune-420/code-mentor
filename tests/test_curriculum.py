@@ -35,7 +35,8 @@ def test_curriculum_endpoint_and_quiz_mastery_flow(tmp_path: Path, monkeypatch) 
     assert resp.status_code == 200
     data = resp.json()
     assert len(data["placement"]) == len(PLACEMENT_QUESTIONS)
-    assert len(data["modules"]) == 5
+    assert len(data["modules"]) >= 7
+    assert {"builtin", "pack"}.issubset({m["source"] for m in data["modules"]})
 
     # Disable AI so 'explain' exercises deterministic rubric fallback cleanly.
     async def no_ai(**_kwargs):

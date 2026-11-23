@@ -26,14 +26,14 @@
 - Optional 5-question Skill Check + **Foundations** topic track (`State & Data Shapes`, `Decisions & Loops`, `Functions & Contracts`, `Connecting Parts`, `Reading Failures & Tests`).
 - All 4 zero-typing quiz mechanics (`predict`, `spot_bug`, `reorder`, `explain`) with SQLite progress tracking and **Open in Stepper** integration.
 
+### Milestone 3 — In-App Lesson Creator & Shareable Lesson Packs
+- **Create Lesson Studio:** Enter any topic or paste a snippet to generate a structured visual lesson + zero-typing quizzes (or author manually offline) with click-a-line bug selection and tracer-grabbed output.
+- **Tracer-Verified Examples & Auto-Repair:** Every AI-generated lesson runs through `tracer.py` (with 1 automatic repair pass on error), and saving/importing requires a clean trace.
+- **Shareable JSON Lesson Packs:** Built-in `lessons/` pack loading (`lessons/recursion_basics.json`, `lessons/binary_search.json`), SQLite `custom_lessons` persistence, and 1-click JSON Export/Import.
+
 ---
 
 ## Upcoming Milestones
-
-### Milestone 3 — In-App Lesson Creator & Shareable Lesson Packs
-- **Create Lesson Studio:** Enter any topic (e.g., *"recursion"*, *"binary search"*, *"decorators"*) or paste a snippet to generate a structured visual lesson + zero-typing quizzes.
-- **Tracer-Verified Examples:** Every AI-generated lesson example is automatically executed through `tracer.py` to guarantee it runs cleanly before saving.
-- **Shareable JSON Lesson Packs:** Load and export portable `.json` lesson packs in `lessons/` so educators and learners can share custom tracks.
 
 ### Milestone 4 — Intermediate → Expert Topic Catalog
 - **Data Structures & Algorithms Visually:** Recursion call-stack animations, Hash Maps, Stacks/Queues, Trees/Graphs, Binary Search, and Step-Count complexity comparisons.

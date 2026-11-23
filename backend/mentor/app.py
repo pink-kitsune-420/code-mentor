@@ -2,35 +2,45 @@
 
 from __future__ import annotations
 
+import json
+import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from mentor import __version__
 from mentor.ast_glossary import GlossarySpan, build_ast_glossary
 from mentor.config import PROJECT_ROOT
 from mentor.curriculum import (
     PLACEMENT_QUESTIONS,
+    CurriculumModule,
+    DifficultyLevel,
+    LessonPack,
+    LessonVerificationResult,
     get_all_modules,
     get_quiz_by_id,
     grade_deterministic_answer,
+    verify_lesson_module,
 )
 from mentor.db import (
+    delete_custom_lesson,
     get_ai_config,
     get_curriculum_progress,
     init_db,
     record_trace_run,
     reset_curriculum_progress,
     save_ai_config,
+    save_custom_lesson,
     save_module_mastery,
     save_quiz_result,
 )
 from mentor.llm_client import (
     check_llama_health,
     explain_trace_step,
+    generate_lesson_draft_with_ai,
     grade_plain_english_with_ai,
 )
 from mentor.presets import PresetLesson, get_presets
@@ -96,6 +106,19 @@ class QuizAnswerRequest(BaseModel):
     selected_line: int | None = None
     ordered_indices: list[int] | None = None
     explanation_text: str | None = None
+
+
+class GenerateLessonRequest(BaseModel):
+    topic: str
+    difficulty: DifficultyLevel = "Beginner"
+    track: str = "Custom Lessons"
+    prerequisites: list[str] = []
+    seed_code: str | None = None
+    model: str | None = None
+
+
+class ImportLessonRequest(BaseModel):
+    payload: str | dict[str, object]
 
 
 def _public_ai_config(cfg: dict[str, object]) -> AiConfigPublic:
@@ -255,6 +278,105 @@ def reset_curriculum() -> dict[str, object]:
     """Reset all curriculum progress."""
     reset_curriculum_progress()
     return {"progress": get_curriculum_progress()}
+
+
+@app.post("/api/lessons/generate")
+async def generate_lesson_endpoint(req: GenerateLessonRequest) -> dict[str, object]:
+    """Generate and tracer-verify a lesson draft using the configured AI provider."""
+    if not req.topic.strip():
+        raise HTTPException(status_code=400, detail="Topic cannot be empty.")
+    return await generate_lesson_draft_with_ai(
+        topic=req.topic.strip(),
+        difficulty=req.difficulty,
+        track=req.track,
+        prerequisites=req.prerequisites,
+        seed_code=req.seed_code,
+        model=req.model,
+    )
+
+
+@app.post("/api/lessons/verify", response_model=LessonVerificationResult)
+def verify_lesson_endpoint(module: CurriculumModule) -> LessonVerificationResult:
+    """Deterministically verify a lesson's example code and quiz contracts."""
+    return verify_lesson_module(module)
+
+
+def _save_verified_lesson(module: CurriculumModule, *, ensure_unique_id: bool = False) -> dict[str, object]:
+    existing_ids = {m.id for m in get_all_modules()}
+    if not module.id.strip() or (ensure_unique_id and module.id in existing_ids):
+        base = module.id.strip() or f"custom_{uuid.uuid4().hex[:6]}"
+        module.id = f"{base}_{uuid.uuid4().hex[:4]}" if base in existing_ids else base
+
+    # Ensure built-in/pack lessons aren't overwritten silently via save.
+    builtin_or_pack_ids = {m.id for m in get_all_modules() if m.source in ("builtin", "pack")}
+    if module.id in builtin_or_pack_ids:
+        module.id = f"{module.id}_{uuid.uuid4().hex[:4]}"
+
+    module.source = "custom"
+    for idx, q in enumerate(module.quizzes, start=1):
+        if not q.id.strip() or not q.id.startswith(module.id):
+            q.id = f"{module.id}_q{idx}"
+
+    verification = verify_lesson_module(module)
+    if not verification.valid:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "Lesson verification failed.",
+                "verification": verification.model_dump(),
+            },
+        )
+
+    save_custom_lesson(lesson_id=module.id, module_json=module.model_dump_json())
+    return {
+        "module": module.model_dump(),
+        "verification": verification.model_dump(),
+        "modules": [m.model_dump() for m in get_all_modules()],
+        "progress": get_curriculum_progress(),
+    }
+
+
+@app.post("/api/lessons")
+def save_lesson_endpoint(module: CurriculumModule) -> dict[str, object]:
+    """Verify and save a custom lesson into SQLite."""
+    return _save_verified_lesson(module, ensure_unique_id=False)
+
+
+@app.post("/api/lessons/import")
+def import_lesson_endpoint(req: ImportLessonRequest) -> dict[str, object]:
+    """Validate, verify, and save an imported JSON LessonPack or CurriculumModule."""
+    try:
+        raw_obj = json.loads(req.payload) if isinstance(req.payload, str) else req.payload
+        if isinstance(raw_obj, dict) and "module" in raw_obj:
+            module = LessonPack.model_validate(raw_obj).module
+        else:
+            module = CurriculumModule.model_validate(raw_obj)
+    except (json.JSONDecodeError, ValidationError) as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid Lesson Pack JSON: {exc}") from exc
+
+    return _save_verified_lesson(module, ensure_unique_id=True)
+
+
+@app.delete("/api/lessons/{lesson_id}")
+def delete_lesson_endpoint(lesson_id: str) -> dict[str, object]:
+    """Delete a custom SQLite lesson and return updated catalog state."""
+    deleted = delete_custom_lesson(lesson_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"Custom lesson '{lesson_id}' not found.")
+    return {
+        "deleted": lesson_id,
+        "modules": [m.model_dump() for m in get_all_modules()],
+        "progress": get_curriculum_progress(),
+    }
+
+
+@app.get("/api/lessons/{lesson_id}/export", response_model=LessonPack)
+def export_lesson_endpoint(lesson_id: str) -> LessonPack:
+    """Export any lesson (built-in, pack, or custom) as a portable LessonPack JSON."""
+    mod = next((m for m in get_all_modules() if m.id == lesson_id), None)
+    if mod is None:
+        raise HTTPException(status_code=404, detail=f"Lesson '{lesson_id}' not found.")
+    return LessonPack(schema_version=1, module=mod)
 
 
 FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"

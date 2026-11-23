@@ -4,9 +4,16 @@ from __future__ import annotations
 
 import json
 import re
+import uuid
 
 import httpx
 
+from mentor.curriculum import (
+    CurriculumModule,
+    DifficultyLevel,
+    LessonVerificationResult,
+    verify_lesson_module,
+)
 from mentor.db import get_ai_config
 from mentor.tracer import TraceFrame
 
@@ -211,3 +218,176 @@ async def grade_plain_english_with_ai(
             }
     except (httpx.HTTPError, KeyError, IndexError, ValueError, json.JSONDecodeError):
         return None
+
+
+def _slugify_topic(topic: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "_", topic.lower()).strip("_")
+    return slug[:28] or "lesson"
+
+
+def _parse_module_json(
+    raw_content: str,
+    *,
+    lesson_id: str,
+    difficulty: DifficultyLevel,
+    track: str,
+    prerequisites: list[str],
+) -> CurriculumModule | None:
+    cleaned = strip_thinking_tags(raw_content)
+    match = re.search(r"\{.*\}", cleaned, flags=re.DOTALL)
+    if not match:
+        return None
+    try:
+        raw_obj = json.loads(match.group(0))
+        if isinstance(raw_obj, dict) and "module" in raw_obj and isinstance(raw_obj["module"], dict):
+            raw_obj = raw_obj["module"]
+        if not isinstance(raw_obj, dict):
+            return None
+        raw_obj["id"] = lesson_id
+        raw_obj["source"] = "custom"
+        raw_obj["difficulty"] = difficulty
+        raw_obj["track"] = track.strip() or "Custom Lessons"
+        raw_obj["prerequisites"] = prerequisites
+        quizzes = raw_obj.get("quizzes", [])
+        if isinstance(quizzes, list):
+            for idx, q in enumerate(quizzes, start=1):
+                if isinstance(q, dict):
+                    q["id"] = f"{lesson_id}_q{idx}"
+        return CurriculumModule.model_validate(raw_obj)
+    except (json.JSONDecodeError, ValueError):
+        return None
+
+
+async def _request_lesson_json(
+    *,
+    v1_base: str,
+    api_key: str,
+    model: str,
+    messages: list[dict[str, str]],
+) -> str:
+    async with httpx.AsyncClient(timeout=45.0) as client:
+        resp = await client.post(
+            f"{v1_base}/chat/completions",
+            headers=_auth_headers(api_key),
+            json={
+                "model": model,
+                "messages": messages,
+                "temperature": 0.25,
+                "max_tokens": 1200,
+            },
+        )
+        resp.raise_for_status()
+        return str(resp.json()["choices"][0]["message"]["content"])
+
+
+async def generate_lesson_draft_with_ai(
+    *,
+    topic: str,
+    difficulty: DifficultyLevel = "Beginner",
+    track: str = "Custom Lessons",
+    prerequisites: list[str] | None = None,
+    seed_code: str | None = None,
+    model: str | None = None,
+) -> dict[str, object]:
+    """Generate a CurriculumModule draft with AI and verify/auto-repair it via tracer.py."""
+    cfg = get_ai_config()
+    if not bool(cfg["enabled"]):
+        return {"ok": False, "error": "AI Narrator is turned off in AI Settings."}
+
+    v1_base = normalize_v1_base(str(cfg["provider_url"]))
+    if not v1_base:
+        return {"ok": False, "error": "No AI provider URL configured."}
+
+    chosen_model = model or str(cfg["default_model"])
+    key = str(cfg["api_key"])
+    prereqs = prerequisites or []
+    lesson_id = f"custom_{_slugify_topic(topic)}_{uuid.uuid4().hex[:4]}"
+
+    system_msg = (
+        "You are an expert visual Python educator creating a short, crystal-clear interactive lesson. "
+        "Respond ONLY with valid JSON matching this schema:\n"
+        '{\n'
+        '  "title": "Short Topic Title",\n'
+        '  "subtitle": "1-line summary",\n'
+        '  "concepts": ["concept1", "concept2"],\n'
+        '  "lesson_points": ["point 1", "point 2", "point 3"],\n'
+        '  "example_code": "10-16 lines of clean runnable Python using only builtins (no input/open/os)",\n'
+        '  "quizzes": [\n'
+        '    {"kind": "predict", "title": "...", "prompt": "...", "code": "short runnable Python", '
+        '"options": ["a", "b", "c", "d"], "correct_index": 0, "explanation": "..."},\n'
+        '    {"kind": "spot_bug", "title": "...", "prompt": "...", "code": "short buggy Python", '
+        '"correct_line": 2, "explanation": "..."},\n'
+        '    {"kind": "explain", "title": "...", "prompt": "...", "code": "2-4 lines", '
+        '"rubric_keywords": ["k1", "k2", "k3"], "sample_explanation": "...", "explanation": "..."}\n'
+        "  ]\n"
+        "}"
+    )
+    seed_note = f"\nOPTIONAL_SEED_CODE:\n{seed_code.strip()}" if seed_code and seed_code.strip() else ""
+    user_msg = f"TOPIC: {topic}\nDIFFICULTY: {difficulty}{seed_note}"
+
+    try:
+        raw_reply = await _request_lesson_json(
+            v1_base=v1_base,
+            api_key=key,
+            model=chosen_model,
+            messages=[
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_msg},
+            ],
+        )
+    except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
+        return {"ok": False, "error": f"AI endpoint ({v1_base}) error: {exc}"}
+
+    draft = _parse_module_json(
+        raw_reply,
+        lesson_id=lesson_id,
+        difficulty=difficulty,
+        track=track,
+        prerequisites=prereqs,
+    )
+    if draft is None:
+        return {"ok": False, "error": "AI did not return valid lesson JSON. Try again or author manually."}
+
+    verification: LessonVerificationResult = verify_lesson_module(draft)
+    repaired = False
+
+    if not verification.valid:
+        errors = [*([verification.example_error] if verification.example_error else []), *verification.quiz_errors]
+        repair_prompt = (
+            "The lesson draft failed deterministic Python verification with these errors:\n"
+            + "\n".join(f"- {e}" for e in errors)
+            + "\n\nFix the JSON so example_code runs cleanly in <=500 steps without external imports "
+            "and all quiz fields are valid. Return ONLY the corrected JSON."
+        )
+        try:
+            repair_reply = await _request_lesson_json(
+                v1_base=v1_base,
+                api_key=key,
+                model=chosen_model,
+                messages=[
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": user_msg},
+                    {"role": "assistant", "content": raw_reply},
+                    {"role": "user", "content": repair_prompt},
+                ],
+            )
+            repaired_draft = _parse_module_json(
+                repair_reply,
+                lesson_id=lesson_id,
+                difficulty=difficulty,
+                track=track,
+                prerequisites=prereqs,
+            )
+            if repaired_draft is not None:
+                draft = repaired_draft
+                verification = verify_lesson_module(draft)
+                repaired = True
+        except (httpx.HTTPError, KeyError, IndexError, ValueError):
+            pass
+
+    return {
+        "ok": True,
+        "module": draft.model_dump(),
+        "verification": verification.model_dump(),
+        "repaired": repaired,
+    }

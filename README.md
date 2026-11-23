@@ -9,7 +9,8 @@ An open-source, local-first **Beginner → Expert Visual Code Tutor**. It helps 
 
 ## Features
 
-- **Topic-Based Skill Catalog & Zero-Typing Quizzes:** Explore programming topics freely (`Beginner` → `Expert`) or take the optional 5-minute Skill Check. Practice with *Predict Output*, *Spot the Bug*, *Reorder Logic Blocks*, and *Explain in Plain English*—then jump straight into the live stepper on any snippet.
+- **Topic-Based Skill Catalog & Zero-Typing Quizzes:** Explore programming topics freely (`Beginner` → `Expert`) or take the optional 5-minute Skill Check. Includes `Foundations` (`Beginner`) and starter `Algorithms & Patterns` (`Intermediate` Recursion & Binary Search) packs, *Predict Output*, *Spot the Bug*, *Reorder Logic Blocks*, and *Explain in Plain English*—then jump straight into the live stepper on any snippet.
+- **Lesson Creator Studio & Shareable Packs:** Click **+ Create / Import** in Learn & Quiz mode to author custom lessons manually or draft them with AI (with 1-click **Verify in Tracer** and auto-repair), and export/import portable `.json` lesson packs.
 - **Deterministic Live Execution Stepper:** Runs Python snippets in an isolated subprocess (`python -I`) with step limits and timeouts—recording exact line-by-line state without AI guessing.
 - **Visual Memory Boxes:** Renders numbers as gauges, lists as indexed strips, dicts as tables, and 2D arrays as visual grids with emerald/amber diff highlights.
 - **Output Terminal & Flow Inspector:** Dedicated terminal window for `print()` output alongside a Call Stack, Loop Iterations, and Line-Jump inspector.

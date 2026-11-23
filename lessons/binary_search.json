@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "module": {
+    "id": "pack_binary_search",
+    "track": "Algorithms & Patterns",
+    "difficulty": "Intermediate",
+    "source": "pack",
+    "tier": 2,
+    "order": 2,
+    "title": "Binary Search Visually",
+    "subtitle": "Cutting a sorted list in half with low, mid, and high pointers",
+    "prerequisites": ["mod_2_loops"],
+    "concepts": ["sorted data", "low / mid / high", "while loop", "halving"],
+    "lesson_points": [
+      "Binary search only works on sorted lists—checking the middle lets you throw away half the remaining items every step.",
+      "Two index pointers, low and high, mark the active search window inside the list.",
+      "When mid is too small, move low = mid + 1; when mid is too big, move high = mid - 1."
+    ],
+    "example_code": "nums = [10, 20, 30, 40, 50, 60]\ntarget = 50\nlow = 0\nhigh = len(nums) - 1\nfound = -1\n\nwhile low <= high:\n    mid = (low + high) // 2\n    if nums[mid] == target:\n        found = mid\n        break\n    elif nums[mid] < target:\n        low = mid + 1\n    else:\n        high = mid - 1\n\nprint(\"Found index:\", found)\n",
+    "quizzes": [
+      {
+        "id": "bs_predict",
+        "kind": "predict",
+        "title": "First Midpoint Check",
+        "prompt": "In nums = [10, 20, 30, 40, 50], with low=0 and high=4, what value is nums[mid] on the first check?",
+        "code": "nums = [10, 20, 30, 40, 50]\nlow = 0\nhigh = 4\nmid = (low + high) // 2\nprint(nums[mid])\n",
+        "options": ["20", "30", "40", "2"],
+        "correct_index": 1,
+        "explanation": "(0 + 4) // 2 is index 2, and nums[2] is 30."
+      },
+      {
+        "id": "bs_spot_bug",
+        "kind": "spot_bug",
+        "title": "Spot the Pointer Bug",
+        "prompt": "Click the line that moves 'low' in the wrong direction when guess is too small.",
+        "code": "if nums[mid] == target:\n    found = mid\nelif nums[mid] < target:\n    low = mid - 1\nelse:\n    high = mid - 1\n",
+        "correct_line": 4,
+        "explanation": "If nums[mid] is smaller than target, the target must be to the RIGHT, so low should become mid + 1 (not mid - 1)."
+      },
+      {
+        "id": "bs_explain",
+        "kind": "explain",
+        "title": "Why Must the List Be Sorted?",
+        "prompt": "Why does binary search break if the input list is unsorted?",
+        "code": "elif nums[mid] < target:\n    low = mid + 1\n",
+        "rubric_keywords": ["half", "sorted", "order", "smaller", "bigger", "right", "left", "skip"],
+        "sample_explanation": "Discarding the left or right half assumes all smaller values sit to the left and larger ones to the right, which is only true when sorted.",
+        "explanation": "Halving the search space relies on ordering guarantees—otherwise you might throw away the half holding the target."
+      }
+    ]
+  }
+}

@@ -53,6 +53,13 @@ def init_db(db_path: Path | None = None) -> None:
                 score REAL NOT NULL,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
+
+            CREATE TABLE IF NOT EXISTS custom_lessons (
+                id TEXT PRIMARY KEY,
+                module_json TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
             """
         )
 
@@ -201,3 +208,39 @@ def reset_curriculum_progress(db_path: Path | None = None) -> None:
     with get_connection(db_path) as conn:
         conn.execute("DELETE FROM quiz_results")
         conn.execute("DELETE FROM mastery_progress")
+
+
+def list_custom_lessons(db_path: Path | None = None) -> list[str]:
+    """Return raw JSON strings of saved custom lessons ordered by creation time."""
+    init_db(db_path)
+    with get_connection(db_path) as conn:
+        rows = conn.execute(
+            "SELECT module_json FROM custom_lessons ORDER BY created_at ASC, id ASC"
+        ).fetchall()
+    return [str(row["module_json"]) for row in rows]
+
+
+def save_custom_lesson(*, lesson_id: str, module_json: str, db_path: Path | None = None) -> None:
+    """Insert or update a custom lesson JSON payload."""
+    init_db(db_path)
+    with get_connection(db_path) as conn:
+        conn.execute(
+            """
+            INSERT INTO custom_lessons (id, module_json, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(id) DO UPDATE SET
+                module_json = excluded.module_json,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (lesson_id, module_json),
+        )
+
+
+def delete_custom_lesson(lesson_id: str, db_path: Path | None = None) -> bool:
+    """Delete a custom lesson and its associated quiz/mastery rows."""
+    init_db(db_path)
+    with get_connection(db_path) as conn:
+        cur = conn.execute("DELETE FROM custom_lessons WHERE id = ?", (lesson_id,))
+        conn.execute("DELETE FROM quiz_results WHERE module_id = ?", (lesson_id,))
+        conn.execute("DELETE FROM mastery_progress WHERE concept_id = ?", (lesson_id,))
+        return cur.rowcount > 0

@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
+
+from mentor.config import PROJECT_ROOT
+from mentor.db import list_custom_lessons
+from mentor.tracer import trace_python_code
 
 QuizKind = Literal["predict", "spot_bug", "reorder", "explain"]
 DifficultyLevel = Literal["Beginner", "Intermediate", "Advanced", "Expert"]
+LessonSource = Literal["builtin", "pack", "custom"]
 
 
 class QuizQuestion(BaseModel):
@@ -34,15 +41,34 @@ class CurriculumModule(BaseModel):
     id: str
     track: str
     difficulty: DifficultyLevel
-    tier: int
-    order: int
+    source: LessonSource = "builtin"
+    tier: int = 1
+    order: int = 1
     title: str
     subtitle: str
     prerequisites: list[str] = []
-    concepts: list[str]
+    concepts: list[str] = []
     lesson_points: list[str]
     example_code: str
-    quizzes: list[QuizQuestion]
+    quizzes: list[QuizQuestion] = []
+
+
+class LessonPack(BaseModel):
+    """Portable JSON wrapper for sharing lessons."""
+
+    schema_version: int = 1
+    module: CurriculumModule
+
+
+class LessonVerificationResult(BaseModel):
+    """Deterministic verification summary for a lesson draft."""
+
+    valid: bool
+    example_ok: bool
+    example_steps: int
+    example_error: str | None = None
+    quiz_errors: list[str] = []
+    warnings: list[str] = []
 
 
 PLACEMENT_QUESTIONS: list[QuizQuestion] = [
@@ -557,17 +583,127 @@ print("OK")
 ]
 
 
+def verify_lesson_module(module: CurriculumModule) -> LessonVerificationResult:
+    """Verify lesson example execution and quiz contracts deterministically."""
+    quiz_errors: list[str] = []
+    warnings: list[str] = []
+
+    if not module.title.strip():
+        quiz_errors.append("Lesson title cannot be empty.")
+    if not module.lesson_points:
+        quiz_errors.append("Include at least 1 lesson bullet point.")
+
+    example_res = trace_python_code(module.example_code)
+    example_ok = example_res.error is None and example_res.total_steps > 0
+    example_err = example_res.error
+    if example_res.error is None and example_res.total_steps == 0:
+        example_err = "Example code produced 0 execution steps."
+
+    for idx, q in enumerate(module.quizzes, start=1):
+        label = f"Quiz #{idx} ({q.title or q.kind})"
+        if q.kind == "predict":
+            if len(q.options) < 2:
+                quiz_errors.append(f"{label}: predict quiz needs at least 2 options.")
+            elif q.correct_index is None or not (0 <= q.correct_index < len(q.options)):
+                quiz_errors.append(f"{label}: correct_index is out of range.")
+            if q.code.strip():
+                q_trace = trace_python_code(q.code)
+                if q_trace.error is not None:
+                    quiz_errors.append(f"{label}: code failed tracing ({q_trace.error}).")
+                elif (
+                    q_trace.frames
+                    and q.correct_index is not None
+                    and 0 <= q.correct_index < len(q.options)
+                ):
+                    actual_out = q_trace.frames[-1].stdout.strip()
+                    chosen = q.options[q.correct_index].strip()
+                    if actual_out and actual_out != chosen and any(
+                        opt.strip() == actual_out for opt in q.options
+                    ):
+                        warnings.append(
+                            f"{label}: stdout was {actual_out!r}, but selected option is {chosen!r}."
+                        )
+        elif q.kind == "spot_bug":
+            line_count = len(q.code.splitlines())
+            if line_count == 0 or q.correct_line is None or not (1 <= q.correct_line <= line_count):
+                quiz_errors.append(
+                    f"{label}: correct_line ({q.correct_line}) must be between 1 and {line_count}."
+                )
+        elif q.kind == "reorder":
+            n = len(q.blocks)
+            if n < 2:
+                quiz_errors.append(f"{label}: reorder quiz needs at least 2 blocks.")
+            elif sorted(q.correct_order) != list(range(n)):
+                quiz_errors.append(
+                    f"{label}: correct_order must be a permutation of 0..{n - 1}."
+                )
+        elif q.kind == "explain":
+            if not q.sample_explanation.strip():
+                quiz_errors.append(f"{label}: explain quiz needs a sample_explanation.")
+
+    valid = example_ok and len(quiz_errors) == 0
+    return LessonVerificationResult(
+        valid=valid,
+        example_ok=example_ok,
+        example_steps=example_res.total_steps,
+        example_error=example_err,
+        quiz_errors=quiz_errors,
+        warnings=warnings,
+    )
+
+
+def load_pack_modules(lessons_dir: Path | None = None) -> list[CurriculumModule]:
+    """Load validated JSON lesson packs from the lessons/ directory."""
+    target_dir = lessons_dir or (PROJECT_ROOT / "lessons")
+    if not target_dir.is_dir():
+        return []
+
+    packs: list[CurriculumModule] = []
+    for path in sorted(target_dir.glob("*.json")):
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(raw, dict) and "module" in raw:
+                mod = LessonPack.model_validate(raw).module
+            else:
+                mod = CurriculumModule.model_validate(raw)
+            mod.source = "pack"
+            packs.append(mod)
+        except (OSError, json.JSONDecodeError, ValidationError):
+            continue
+    return packs
+
+
+def load_custom_modules() -> list[CurriculumModule]:
+    """Load custom lessons persisted in SQLite."""
+    modules: list[CurriculumModule] = []
+    for raw_json in list_custom_lessons():
+        try:
+            mod = CurriculumModule.model_validate_json(raw_json)
+            mod.source = "custom"
+            modules.append(mod)
+        except ValidationError:
+            continue
+    return modules
+
+
 def get_all_modules() -> list[CurriculumModule]:
-    """Return Tier 1 modules in curriculum order."""
-    return TIER1_MODULES
+    """Return built-in, JSON-pack, and custom SQLite modules without duplicate IDs."""
+    merged: list[CurriculumModule] = []
+    seen_ids: set[str] = set()
+    for mod in [*TIER1_MODULES, *load_pack_modules(), *load_custom_modules()]:
+        if mod.id in seen_ids:
+            continue
+        seen_ids.add(mod.id)
+        merged.append(mod)
+    return merged
 
 
 def get_quiz_by_id(quiz_id: str) -> tuple[str | None, QuizQuestion | None]:
-    """Find a quiz question across placement and Tier 1 modules, returning (module_id, question)."""
+    """Find a quiz question across placement and all active modules, returning (module_id, question)."""
     for q in PLACEMENT_QUESTIONS:
         if q.id == quiz_id:
             return (None, q)
-    for mod in TIER1_MODULES:
+    for mod in get_all_modules():
         for q in mod.quizzes:
             if q.id == quiz_id:
                 return (mod.id, q)
