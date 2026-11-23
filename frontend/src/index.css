@@ -1648,6 +1648,180 @@ textarea {
   color: #6ee7b7;
 }
 
+.difficulty-pill.diff-intermediate {
+  background: rgba(34, 211, 238, 0.16);
+  color: #67e8f9;
+}
+
+.difficulty-pill.diff-advanced {
+  background: var(--amber-soft);
+  color: #fcd34d;
+}
+
+.difficulty-pill.diff-expert {
+  background: var(--rose-soft);
+  color: #fda4af;
+}
+
+/* Shared Object Reference Badge & Object Cards */
+.shared-ref-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  margin-bottom: 6px;
+  border-radius: 999px;
+  background: rgba(34, 211, 238, 0.15);
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  color: #a5f3fc;
+}
+
+.object-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.object-class-header {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  color: #c7d2fe;
+}
+
+/* Daily Review & Step-Count Complexity Lab */
+.review-due-pill {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--amber-soft);
+  color: #fcd34d;
+}
+
+.review-item-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.review-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-reason-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.review-reason-pill.reason-missed {
+  background: var(--rose-soft);
+  color: #fda4af;
+}
+
+.review-reason-pill.reason-review {
+  background: var(--amber-soft);
+  color: #fcd34d;
+}
+
+.review-reason-pill.reason-new {
+  background: var(--accent-soft);
+  color: #c7d2fe;
+}
+
+.lab-slider-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--panel-elev);
+  border: 1px solid var(--border);
+}
+
+.lab-slider-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.84rem;
+}
+
+.lab-compare-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 820px) {
+  .lab-compare-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lab-card {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lab-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quiz-kind-pill.fast {
+  background: var(--emerald-soft);
+  color: #6ee7b7;
+}
+
+.lab-metric-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.lab-steps-num {
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.lab-bar-track {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.lab-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.lab-bar-fill.left {
+  background: linear-gradient(90deg, #f59e0b, #f43f5e);
+}
+
+.lab-bar-fill.right {
+  background: linear-gradient(90deg, #06b6d4, #10b981);
+}
+
 .lesson-links-row {
   display: flex;
   flex-wrap: wrap;

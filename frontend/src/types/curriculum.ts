@@ -49,6 +49,56 @@ export interface LessonPack {
   module: CurriculumModule;
 }
 
+export interface ReviewItem {
+  quiz: QuizQuestion;
+  module_id: string | null;
+  module_title: string;
+  reason: "missed" | "review" | "new";
+}
+
+export interface ReviewQueueResponse {
+  items: ReviewItem[];
+  due_count: number;
+  breakdown: {
+    missed: number;
+    passed: number;
+    unattempted: number;
+  };
+}
+
+export interface ComplexitySideSpec {
+  label: string;
+  big_o: string;
+  description: string;
+}
+
+export interface ComplexityPairMeta {
+  id: string;
+  title: string;
+  subtitle: string;
+  min_n: number;
+  max_n: number;
+  step_n: number;
+  default_n: number;
+  takeaway: string;
+  left: ComplexitySideSpec;
+  right: ComplexitySideSpec;
+}
+
+export interface ComplexityRunSide extends ComplexitySideSpec {
+  steps: number;
+  truncated: boolean;
+  error: string | null;
+  code: string;
+}
+
+export interface ComplexityRunResponse {
+  pair: ComplexityPairMeta;
+  n: number;
+  left: ComplexityRunSide;
+  right: ComplexityRunSide;
+}
+
 export interface CurriculumProgress {
   mastery: Record<string, { status: string; score: number }>;
   quizzes: Record<string, { module_id: string | null; correct: boolean; score: number }>;

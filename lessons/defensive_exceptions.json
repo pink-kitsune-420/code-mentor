@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "module": {
+    "id": "pack_defensive_exceptions",
+    "track": "Reliability & Testing",
+    "difficulty": "Advanced",
+    "source": "pack",
+    "tier": 3,
+    "order": 5,
+    "title": "Defensive Code & Exceptions",
+    "subtitle": "Guard clauses, raising clear errors, and avoiding silent try/except traps",
+    "prerequisites": ["mod_5_debugging"],
+    "concepts": ["raise ValueError", "try / except", "guard clause", "fail loudly"],
+    "lesson_points": [
+      "Validate bad inputs right at the top of a function (guard clauses) and fail loudly with a clear exception like ValueError.",
+      "Only catch specific exceptions you genuinely know how to recover from (except ValueError:), never a bare 'except:' that hides bugs.",
+      "Stepping through try/except shows execution jumping straight from the failing line to the matching except block."
+    ],
+    "example_code": "def parse_port(raw):\n    port = int(raw)\n    if not (1 <= port <= 65535):\n        raise ValueError(\"Port out of range\")\n    return port\n\nfor text in [\"8090\", \"bad\", \"99999\"]:\n    try:\n        print(\"Valid:\", parse_port(text))\n    except ValueError as err:\n        print(\"Rejected:\", text, err)\n",
+    "quizzes": [
+      {
+        "id": "exc_predict",
+        "kind": "predict",
+        "title": "Tracing a Caught Exception",
+        "prompt": "What gets printed when text = 'abc'?",
+        "code": "def to_num(text):\n    try:\n        val = int(text)\n        return val * 2\n    except ValueError:\n        return -1\n\nprint(to_num(\"abc\"))\n",
+        "options": ["0", "-1", "ValueError", "None"],
+        "correct_index": 1,
+        "explanation": "int('abc') raises ValueError on line 3, skipping line 4 and jumping straight to 'except ValueError:' which returns -1."
+      },
+      {
+        "id": "exc_spot_bug",
+        "kind": "spot_bug",
+        "title": "Spot the Swallowed Bug",
+        "prompt": "Click the line that dangerously hides typos and real bugs by catching EVERY possible error silently.",
+        "code": "def load_score(data):\n    try:\n        return data[\"score\"]\n    except:\n        return 0\n",
+        "correct_line": 4,
+        "explanation": "A bare 'except:' on line 4 catches KeyError, NameError typos, and even KeyboardInterrupt silently—catch specific errors like KeyError instead."
+      },
+      {
+        "id": "exc_explain",
+        "kind": "explain",
+        "title": "Why Fail Loudly?",
+        "prompt": "Why is raising ValueError on invalid inputs often safer than quietly returning 0?",
+        "code": "if amount < 0:\n    raise ValueError(\"Negative amount\")\n",
+        "rubric_keywords": ["hide", "silent", "bug", "catch", "corrupt", "caller", "loud", "notice", "early"],
+        "sample_explanation": "Quietly returning 0 hides mistakes and lets corrupt data keep flowing, whereas raising an error stops immediately where the bug happened.",
+        "explanation": "Failing loudly surfaces invalid state at the exact source instead of letting subtle bugs corrupt downstream calculations."
+      }
+    ]
+  }
+}

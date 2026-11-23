@@ -1,3 +1,4 @@
+import { Link2 } from "lucide-react";
 import type { TraceFrame, VariableSnapshot } from "../types/trace";
 
 interface MemoryBoxesProps {
@@ -14,7 +15,7 @@ function getActiveGridCursor(vars: Record<string, VariableSnapshot>): { row: num
 }
 
 function isWideShape(shape: VariableSnapshot["shape"]): boolean {
-  return shape === "dict" || shape === "list" || shape === "grid2d";
+  return shape === "dict" || shape === "list" || shape === "grid2d" || shape === "object";
 }
 
 function VariableBody({
@@ -96,12 +97,45 @@ function VariableBody({
     );
   }
 
+  if (snap.shape === "object" && snap.value && typeof snap.value === "object") {
+    const obj = snap.value as { class_name?: string; fields?: Record<string, unknown> };
+    const fields = Object.entries(obj.fields ?? {});
+    return (
+      <div className="object-card-body">
+        <div className="object-class-header">Instance of {obj.class_name ?? snap.type}</div>
+        {fields.length === 0 ? (
+          <span className="muted-note">(no public attributes)</span>
+        ) : (
+          <table className="dict-table">
+            <tbody>
+              {fields.map(([k, v]) => (
+                <tr key={k}>
+                  <td className="dict-key">.{k}</td>
+                  <td>{JSON.stringify(v)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    );
+  }
+
   return <div className="scalar-repr">{snap.repr}</div>;
 }
 
 export function MemoryBoxes({ frame }: MemoryBoxesProps) {
   const entries = frame ? Object.entries(frame.variables) : [];
   const cursor = frame ? getActiveGridCursor(frame.variables) : { row: null, col: null };
+
+  const namesByObjId = new Map<number, string[]>();
+  for (const [name, snap] of entries) {
+    if (typeof snap.obj_id === "number") {
+      const list = namesByObjId.get(snap.obj_id) ?? [];
+      list.push(name);
+      namesByObjId.set(snap.obj_id, list);
+    }
+  }
 
   if (entries.length === 0) {
     return (
@@ -118,6 +152,10 @@ export function MemoryBoxes({ frame }: MemoryBoxesProps) {
         const updateInfo = frame?.changes.updated[name];
         const statusClass = isCreated ? "created" : updateInfo ? "updated" : "";
         const spanClass = isWideShape(snap.shape) ? "wide" : "scalar";
+        const sharedPeers =
+          typeof snap.obj_id === "number"
+            ? (namesByObjId.get(snap.obj_id) ?? []).filter((peer) => peer !== name)
+            : [];
 
         return (
           <div key={name} className={`mem-card ${spanClass} ${statusClass}`}>
@@ -135,6 +173,13 @@ export function MemoryBoxes({ frame }: MemoryBoxesProps) {
                 )}
               </div>
             </div>
+
+            {sharedPeers.length > 0 && (
+              <div className="shared-ref-badge">
+                <Link2 size={11} />
+                <span>Shared with: {sharedPeers.join(", ")}</span>
+              </div>
+            )}
 
             {updateInfo && (
               <div className="diff-line">

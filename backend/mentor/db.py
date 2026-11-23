@@ -193,11 +193,14 @@ def get_curriculum_progress(db_path: Path | None = None) -> dict[str, object]:
     with get_connection(db_path) as conn:
         for row in conn.execute("SELECT concept_id, status, score FROM mastery_progress").fetchall():
             mastery[row["concept_id"]] = {"status": row["status"], "score": row["score"]}
-        for row in conn.execute("SELECT quiz_id, module_id, correct, score FROM quiz_results").fetchall():
+        for row in conn.execute(
+            "SELECT quiz_id, module_id, correct, score, updated_at FROM quiz_results"
+        ).fetchall():
             quizzes[row["quiz_id"]] = {
                 "module_id": row["module_id"],
                 "correct": bool(row["correct"]),
                 "score": row["score"],
+                "updated_at": row["updated_at"],
             }
     return {"mastery": mastery, "quizzes": quizzes}
 

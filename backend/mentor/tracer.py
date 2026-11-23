@@ -19,9 +19,10 @@ class VariableSnapshot(BaseModel):
     """Serialized runtime variable state."""
 
     type: str
-    shape: Literal["number", "string", "bool", "list", "dict", "grid2d", "none", "other"]
+    shape: Literal["number", "string", "bool", "list", "dict", "grid2d", "object", "none", "other"]
     value: Any
     repr: str
+    obj_id: int | None = None
 
 
 class VariableUpdate(BaseModel):

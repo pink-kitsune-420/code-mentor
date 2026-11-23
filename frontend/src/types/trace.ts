@@ -5,6 +5,7 @@ export type VariableShape =
   | "list"
   | "dict"
   | "grid2d"
+  | "object"
   | "none"
   | "other";
 
@@ -13,6 +14,7 @@ export interface VariableSnapshot {
   shape: VariableShape;
   value: unknown;
   repr: string;
+  obj_id?: number | null;
 }
 
 export interface VariableUpdate {

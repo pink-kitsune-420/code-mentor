@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "module": {
+    "id": "pack_decorators_and_generators",
+    "track": "Python Deep Dive",
+    "difficulty": "Advanced",
+    "source": "pack",
+    "tier": 3,
+    "order": 6,
+    "title": "Decorators & Generators",
+    "subtitle": "Wrapping functions with @decorators and pausing execution with yield",
+    "prerequisites": ["mod_3_functions", "pack_recursion_basics"],
+    "concepts": ["closure", "@decorator", "yield", "lazy generator"],
+    "lesson_points": [
+      "Functions are objects in memory, so one function can wrap another function to add logging, timing, or checks (@decorator).",
+      "Writing '@log_call' above 'def greet():' is shorthand for 'greet = log_call(greet)'.",
+      "A generator uses 'yield' instead of 'return'—pausing its stack frame and handing back one value at a time until asked for the next."
+    ],
+    "example_code": "def trace_call(fn):\n    def wrapper(x):\n        print(\"Before\", fn.__name__)\n        res = fn(x)\n        return res\n    return wrapper\n\n@trace_call\ndef square(n):\n    return n * n\n\ndef countdown(n):\n    while n > 0:\n        yield n\n        n -= 1\n\nprint(\"Squared:\", square(4))\nprint(\"Ticks:\", list(countdown(3)))\n",
+    "quizzes": [
+      {
+        "id": "dec_predict",
+        "kind": "predict",
+        "title": "Stepping a Generator",
+        "prompt": "What does the second next(gen) call print?",
+        "code": "def steps():\n    yield \"first\"\n    yield \"second\"\n\ngen = steps()\n_ = next(gen)\nprint(next(gen))\n",
+        "options": ["first", "second", "StopIteration", "['first', 'second']"],
+        "correct_index": 1,
+        "explanation": "The first next(gen) pauses at yield 'first'; the second next(gen) resumes right after it and yields 'second'."
+      },
+      {
+        "id": "dec_spot_bug",
+        "kind": "spot_bug",
+        "title": "Spot the Broken Decorator Wrapper",
+        "prompt": "Click the line in wrapper() that throws away the wrapped function's return value.",
+        "code": "def twice_check(fn):\n    def wrapper(x):\n        fn(x)\n    return wrapper\n\n@twice_check\ndef add_one(n):\n    return n + 1\n\nprint(add_one(5))\n",
+        "correct_line": 3,
+        "explanation": "Line 3 calls fn(x) without 'return fn(x)', so wrapper returns None instead of 6."
+      },
+      {
+        "id": "dec_explain",
+        "kind": "explain",
+        "title": "Why Use yield Instead of Building a List?",
+        "prompt": "What is the main memory advantage of yielding items one by one in a generator?",
+        "code": "def stream_ids(limit):\n    for i in range(limit):\n        yield i\n",
+        "rubric_keywords": ["memory", "one", "lazy", "all", "ram", "huge", "large", "time"],
+        "sample_explanation": "A generator produces one item at a time on demand instead of allocating a giant list holding millions of items in memory all at once.",
+        "explanation": "Lazy evaluation keeps memory usage tiny when processing large streams or files."
+      }
+    ]
+  }
+}

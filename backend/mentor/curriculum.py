@@ -9,7 +9,7 @@ from typing import Literal
 from pydantic import BaseModel, ValidationError
 
 from mentor.config import PROJECT_ROOT
-from mentor.db import list_custom_lessons
+from mentor.db import get_curriculum_progress, list_custom_lessons
 from mentor.tracer import trace_python_code
 
 QuizKind = Literal["predict", "spot_bug", "reorder", "explain"]
@@ -708,6 +708,81 @@ def get_quiz_by_id(quiz_id: str) -> tuple[str | None, QuizQuestion | None]:
             if q.id == quiz_id:
                 return (mod.id, q)
     return (None, None)
+
+
+def build_review_queue(limit: int = 5) -> dict[str, object]:
+    """Build a prioritized Daily Review queue: missed -> oldest passed -> fresh unattempted."""
+    progress = get_curriculum_progress()
+    quiz_history = progress.get("quizzes", {})
+    assert isinstance(quiz_history, dict)
+
+    all_entries: list[tuple[str, str, QuizQuestion]] = []
+    for mod in get_all_modules():
+        for q in mod.quizzes:
+            all_entries.append((mod.id, mod.title, q))
+
+    missed: list[tuple[str, str, str, QuizQuestion]] = []
+    stale: list[tuple[str, str, str, QuizQuestion]] = []
+    fresh: list[tuple[str, str, QuizQuestion]] = []
+
+    for mod_id, mod_title, q in all_entries:
+        record = quiz_history.get(q.id)
+        if record is None:
+            fresh.append((mod_id, mod_title, q))
+        elif not bool(record.get("correct", False)):
+            missed.append((str(record.get("updated_at", "")), mod_id, mod_title, q))
+        else:
+            stale.append((str(record.get("updated_at", "")), mod_id, mod_title, q))
+
+    missed.sort(key=lambda item: item[0])
+    stale.sort(key=lambda item: item[0])
+
+    selected: list[dict[str, object]] = []
+    for _, mod_id, mod_title, q in missed:
+        if len(selected) >= limit:
+            break
+        selected.append(
+            {
+                "quiz": q.model_dump(),
+                "module_id": mod_id,
+                "module_title": mod_title,
+                "reason": "missed",
+            }
+        )
+
+    for _, mod_id, mod_title, q in stale:
+        if len(selected) >= limit:
+            break
+        selected.append(
+            {
+                "quiz": q.model_dump(),
+                "module_id": mod_id,
+                "module_title": mod_title,
+                "reason": "review",
+            }
+        )
+
+    for mod_id, mod_title, q in fresh:
+        if len(selected) >= limit:
+            break
+        selected.append(
+            {
+                "quiz": q.model_dump(),
+                "module_id": mod_id,
+                "module_title": mod_title,
+                "reason": "new",
+            }
+        )
+
+    return {
+        "items": selected,
+        "due_count": len(missed),
+        "breakdown": {
+            "missed": len(missed),
+            "passed": len(stale),
+            "unattempted": len(fresh),
+        },
+    }
 
 
 def grade_deterministic_answer(

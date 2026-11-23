@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "module": {
+    "id": "pack_hashmaps_and_stacks",
+    "track": "Algorithms & Patterns",
+    "difficulty": "Intermediate",
+    "source": "pack",
+    "tier": 2,
+    "order": 4,
+    "title": "Hash Maps & Stacks",
+    "subtitle": "Fast frequency counting with dicts and LIFO undo history with stacks",
+    "prerequisites": ["mod_1_state", "mod_2_loops"],
+    "concepts": ["hash map (dict)", "frequency count", "LIFO stack", "append / pop"],
+    "lesson_points": [
+      "A dictionary (hash map) jumps straight to counts[key] in constant time instead of scanning a whole list.",
+      "Use counts.get(key, 0) + 1 to safely count items even on the very first time you see a key.",
+      "A stack is a list where you push onto the top with .append() and remove the newest item with .pop() (Last-In, First-Out)."
+    ],
+    "example_code": "events = [\"hit\", \"heal\", \"hit\", \"hit\"]\ncounts = {}\nundo_stack = []\n\nfor ev in events:\n    counts[ev] = counts.get(ev, 0) + 1\n    undo_stack.append(ev)\n\nlast = undo_stack.pop()\nprint(\"Counts:\", counts, \"Undid:\", last)\n",
+    "quizzes": [
+      {
+        "id": "hm_predict",
+        "kind": "predict",
+        "title": "Stack Pop Order (LIFO)",
+        "prompt": "What does stack.pop() return after pushing 'a', 'b', 'c'?",
+        "code": "stack = []\nfor item in [\"a\", \"b\", \"c\"]:\n    stack.append(item)\nprint(stack.pop())\n",
+        "options": ["a", "b", "c", "['a', 'b']"],
+        "correct_index": 2,
+        "explanation": "Stacks are Last-In, First-Out (LIFO): 'c' was appended last, so .pop() removes and returns 'c'."
+      },
+      {
+        "id": "hm_spot_bug",
+        "kind": "spot_bug",
+        "title": "Spot the KeyError Trap",
+        "prompt": "Click the line that crashes with KeyError on the first unseen word.",
+        "code": "counts = {}\nfor word in [\"go\", \"go\"]:\n    counts[word] += 1\nprint(counts)\n",
+        "correct_line": 3,
+        "explanation": "Line 3 tries to read counts['go'] before it exists. Use counts[word] = counts.get(word, 0) + 1 instead."
+      },
+      {
+        "id": "hm_reorder",
+        "kind": "reorder",
+        "title": "Safe Undo Guard",
+        "prompt": "Order these blocks so popping from history never crashes when empty.",
+        "blocks": [
+            "    return history.pop()",
+            "if not history:",
+            "    return None",
+            "return None"
+        ],
+        "correct_order": [1, 2, 0, 3],
+        "explanation": "Check 'if not history: return None' before calling .pop()."
+      }
+    ]
+  }
+}

@@ -9,10 +9,11 @@ An open-source, local-first **Beginner → Expert Visual Code Tutor**. It helps 
 
 ## Features
 
-- **Topic-Based Skill Catalog & Zero-Typing Quizzes:** Explore programming topics freely (`Beginner` → `Expert`) or take the optional 5-minute Skill Check. Includes `Foundations` (`Beginner`) and starter `Algorithms & Patterns` (`Intermediate` Recursion & Binary Search) packs, *Predict Output*, *Spot the Bug*, *Reorder Logic Blocks*, and *Explain in Plain English*—then jump straight into the live stepper on any snippet.
+- **Topic-Based Skill Catalog & Zero-Typing Quizzes:** Explore programming topics freely (`Beginner` → `Expert`) across `Foundations`, `Algorithms & Patterns`, `Architecture & Patterns`, `Reliability & Testing`, `Python Deep Dive`, and `Real-World Code Review`—plus an optional 5-minute Skill Check and a **Daily Review** queue that prioritizes weak spots.
+- **Step-Count Complexity Lab:** Compare algorithm pairs (`Linear vs. Binary Search`, `Nested Loops vs. Hash Set`, `Recursive vs. Memoized Fibonacci`) across input sizes `N` using real execution step counts.
 - **Lesson Creator Studio & Shareable Packs:** Click **+ Create / Import** in Learn & Quiz mode to author custom lessons manually or draft them with AI (with 1-click **Verify in Tracer** and auto-repair), and export/import portable `.json` lesson packs.
 - **Deterministic Live Execution Stepper:** Runs Python snippets in an isolated subprocess (`python -I`) with step limits and timeouts—recording exact line-by-line state without AI guessing.
-- **Visual Memory Boxes:** Renders numbers as gauges, lists as indexed strips, dicts as tables, and 2D arrays as visual grids with emerald/amber diff highlights.
+- **Visual Memory Boxes:** Renders numbers as gauges, lists as indexed strips, dicts as tables, custom class instances as Object Cards, shared mutable references with `Shared with:` badges, and 2D arrays as visual grids with emerald/amber diff highlights.
 - **Output Terminal & Flow Inspector:** Dedicated terminal window for `print()` output alongside a Call Stack, Loop Iterations, and Line-Jump inspector.
 - **Resizable & Draggable IDE Cockpit:** Full-viewport (`100dvh`) split layout with draggable resize splitters (`⋮` / `⋯`), drag-and-drop `⋮⋮` title bar window swapping, maximize/hide/restore controls, and `Reset Layout`.
 - **AST Plain-English Glossary:** Inspects Python syntax structures deterministically using `ast.parse()`.

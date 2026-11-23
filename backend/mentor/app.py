@@ -13,6 +13,7 @@ from pydantic import BaseModel, ValidationError
 
 from mentor import __version__
 from mentor.ast_glossary import GlossarySpan, build_ast_glossary
+from mentor.complexity_lab import get_complexity_pairs, run_complexity_comparison
 from mentor.config import PROJECT_ROOT
 from mentor.curriculum import (
     PLACEMENT_QUESTIONS,
@@ -20,6 +21,7 @@ from mentor.curriculum import (
     DifficultyLevel,
     LessonPack,
     LessonVerificationResult,
+    build_review_queue,
     get_all_modules,
     get_quiz_by_id,
     grade_deterministic_answer,
@@ -119,6 +121,11 @@ class GenerateLessonRequest(BaseModel):
 
 class ImportLessonRequest(BaseModel):
     payload: str | dict[str, object]
+
+
+class ComplexityRunRequest(BaseModel):
+    pair_id: str
+    n: int
 
 
 def _public_ai_config(cfg: dict[str, object]) -> AiConfigPublic:
@@ -278,6 +285,27 @@ def reset_curriculum() -> dict[str, object]:
     """Reset all curriculum progress."""
     reset_curriculum_progress()
     return {"progress": get_curriculum_progress()}
+
+
+@app.get("/api/curriculum/review")
+def read_review_queue() -> dict[str, object]:
+    """Return prioritized Daily Review / Weak Spots quiz queue."""
+    return build_review_queue()
+
+
+@app.get("/api/complexity-lab/presets")
+def read_complexity_presets() -> list[dict[str, object]]:
+    """Return available algorithm comparison pairs for the Step-Count Lab."""
+    return [p.model_dump() for p in get_complexity_pairs()]
+
+
+@app.post("/api/complexity-lab/run")
+def run_complexity_lab_endpoint(req: ComplexityRunRequest) -> dict[str, object]:
+    """Run two competing algorithms at size N and return deterministic step counts."""
+    try:
+        return run_complexity_comparison(req.pair_id, req.n)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @app.post("/api/lessons/generate")

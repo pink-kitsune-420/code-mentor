@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "module": {
+    "id": "pack_auditing_ai_code",
+    "track": "Real-World Code Review",
+    "difficulty": "Expert",
+    "source": "pack",
+    "tier": 4,
+    "order": 7,
+    "title": "Auditing AI-Written Code",
+    "subtitle": "Spotting mutable default traps, silent assumptions, and weak assertions",
+    "prerequisites": ["mod_5_debugging", "pack_defensive_exceptions"],
+    "concepts": ["mutable default trap", "off-by-one", "test coverage gap", "state leak"],
+    "lesson_points": [
+      "AI-generated code often looks clean on the happy path while hiding classic Python traps at boundaries.",
+      "Trap #1 — Mutable default args: 'def add_tag(tag, tags=[]):' shares ONE list across every call instead of creating a new list!",
+      "Trap #2 — Weak tests: Always inspect whether assertions test empty lists, duplicates, negative numbers, and repeated calls."
+    ],
+    "example_code": "def add_tag_safe(tag, tags=None):\n    if tags is None:\n        tags = []\n    tags.append(tag)\n    return tags\n\na = add_tag_safe(\"python\")\nb = add_tag_safe(\"visual\")\nassert a == [\"python\"]\nassert b == [\"visual\"]\nprint(\"Independent lists:\", a, b)\n",
+    "quizzes": [
+      {
+        "id": "audit_predict",
+        "kind": "predict",
+        "title": "The Mutable Default Bug",
+        "prompt": "An AI wrote 'items=[]' as a default parameter. What does the second call print?",
+        "code": "def append_log(msg, items=[]):\n    items.append(msg)\n    return items\n\nfirst = append_log(\"boot\")\nsecond = append_log(\"ready\")\nprint(second)\n",
+        "options": ["['ready']", "['boot', 'ready']", "['boot']", "Error"],
+        "correct_index": 1,
+        "explanation": "Default list [] is created ONCE when 'def' runs, so both calls share and mutate the same list!"
+      },
+      {
+        "id": "audit_spot_bug",
+        "kind": "spot_bug",
+        "title": "Spot the Off-by-One Access Bug",
+        "prompt": "Click the line in this AI-written helper that skips checking the last item or crashes on empty input.",
+        "code": "def last_two(items):\n    if len(items) < 2:\n        return items\n    return items[len(items) - 2 : len(items) - 1]\n\nprint(last_two([10, 20, 30]))\n",
+        "correct_line": 4,
+        "explanation": "Python slice end index is exclusive, so stopping at len(items) - 1 drops the last item (returns [20] instead of [20, 30]). Use items[-2:]!"
+      },
+      {
+        "id": "audit_explain",
+        "kind": "explain",
+        "title": "Reviewing a Suspiciously Green Test",
+        "prompt": "If an AI agent submits a function plus 'assert calc([1, 2]) == 3', what should you ask before trusting it?",
+        "code": "def calc(nums):\n    return sum(nums)\nassert calc([1, 2]) == 3\n",
+        "rubric_keywords": ["edge", "empty", "negative", "none", "boundary", "case", "test", "missing", "type"],
+        "sample_explanation": "Check what happens on edge cases not tested—such as empty lists [], None, negative numbers, or non-number inputs.",
+        "explanation": "Single happy-path assertions prove almost nothing about boundary safety; auditing missing test cases is the fastest way to catch silent flaws."
+      }
+    ]
+  }
+}

@@ -1,31 +1,37 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   Award,
   BookOpen,
   CheckCircle2,
   Compass,
-  Download,
-  Edit3,
+  Gauge,
+  History,
   Play,
   Plus,
   RotateCcw,
-  Trash2,
 } from "lucide-react";
 import type {
   CurriculumModule,
   CurriculumProgress,
   CurriculumResponse,
+  DifficultyLevel,
   LessonPack,
   QuizQuestion,
+  ReviewQueueResponse,
 } from "../types/curriculum";
 import { highlightPythonLine } from "../utils/pythonHighlight";
 import { LessonStudioModal } from "./LessonStudioModal";
 import { QuizCard } from "./QuizCard";
+import { StepCountLab } from "./StepCountLab";
 
 interface LearnModeViewProps {
   onOpenInStepper: (code: string) => void;
   onMasterySummaryChange?: (mastered: number, total: number) => void;
+}
+
+function difficultyClass(level: DifficultyLevel): string {
+  return `diff-${level.toLowerCase()}`;
 }
 
 export function LearnModeView({
@@ -35,20 +41,39 @@ export function LearnModeView({
   const [placement, setPlacement] = useState<QuizQuestion[]>([]);
   const [modules, setModules] = useState<CurriculumModule[]>([]);
   const [progress, setProgress] = useState<CurriculumProgress>({ mastery: {}, quizzes: {} });
+  const [reviewQueue, setReviewQueue] = useState<ReviewQueueResponse | null>(null);
   const [selectedId, setSelectedId] = useState<string>("placement");
   const [resetEpoch, setResetEpoch] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [studioOpen, setStudioOpen] = useState(false);
   const [editingModule, setEditingModule] = useState<CurriculumModule | null>(null);
 
+  const refreshReview = useCallback(async () => {
+    try {
+      const resp = await fetch("/api/curriculum/review");
+      if (resp.ok) {
+        const data = (await resp.json()) as ReviewQueueResponse;
+        setReviewQueue(data);
+      }
+    } catch {
+      // ignore transient errors
+    }
+  }, []);
+
   useEffect(() => {
     async function load() {
       try {
-        const resp = await fetch("/api/curriculum");
-        const data = (await resp.json()) as CurriculumResponse;
+        const [currRes, revRes] = await Promise.all([
+          fetch("/api/curriculum"),
+          fetch("/api/curriculum/review"),
+        ]);
+        const data = (await currRes.json()) as CurriculumResponse;
         setPlacement(data.placement);
         setModules(data.modules);
         setProgress(data.progress);
+        if (revRes.ok) {
+          setReviewQueue((await revRes.json()) as ReviewQueueResponse);
+        }
       } finally {
         setLoading(false);
       }
@@ -96,6 +121,7 @@ export function LearnModeView({
     const data = (await resp.json()) as { progress: CurriculumProgress };
     setProgress(data.progress);
     setResetEpoch((e) => e + 1);
+    void refreshReview();
   }
 
   async function handleExportLesson(lessonId: string) {
@@ -123,6 +149,12 @@ export function LearnModeView({
     setModules(data.modules);
     setProgress(data.progress);
     setSelectedId("placement");
+    void refreshReview();
+  }
+
+  function handleProgressUpdate(nextProgress: CurriculumProgress) {
+    setProgress(nextProgress);
+    void refreshReview();
   }
 
   if (loading) {
@@ -161,6 +193,41 @@ export function LearnModeView({
               </span>
             </div>
             <span className="syllabus-sub">5 quick checks to spot what you already know</span>
+          </button>
+
+          <button
+            className={`syllabus-item ${selectedId === "review" ? "active" : ""}`}
+            onClick={() => {
+              setSelectedId("review");
+              void refreshReview();
+            }}
+          >
+            <div className="syllabus-item-top">
+              <strong style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                <History size={13} />
+                Daily Review
+              </strong>
+              {reviewQueue && reviewQueue.due_count > 0 ? (
+                <span className="review-due-pill">{reviewQueue.due_count} missed</span>
+              ) : (
+                <span className="syllabus-score">Ready</span>
+              )}
+            </div>
+            <span className="syllabus-sub">Weak spots first, then spaced refreshers</span>
+          </button>
+
+          <button
+            className={`syllabus-item ${selectedId === "complexity_lab" ? "active" : ""}`}
+            onClick={() => setSelectedId("complexity_lab")}
+          >
+            <div className="syllabus-item-top">
+              <strong style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                <Gauge size={13} />
+                Step-Count Lab
+              </strong>
+              <span className="syllabus-score">Big-O</span>
+            </div>
+            <span className="syllabus-sub">Compare algorithm speed visually</span>
           </button>
 
           {groupedTracks.map(([trackName, trackMods]) => (
@@ -235,7 +302,7 @@ export function LearnModeView({
                   >
                     Functions &amp; Contracts
                   </button>{" "}
-                  or explore Intermediate topics on the left.
+                  or explore Intermediate, Advanced, and Expert tracks on the left.
                 </div>
               )}
             </div>
@@ -247,18 +314,72 @@ export function LearnModeView({
                   question={q}
                   savedState={progress.quizzes[q.id]}
                   onOpenInStepper={onOpenInStepper}
-                  onProgressUpdate={setProgress}
+                  onProgressUpdate={handleProgressUpdate}
                 />
               ))}
             </div>
           </div>
+        ) : selectedId === "review" ? (
+          <div className="learn-content">
+            <div className="lesson-hero">
+              <div className="lesson-hero-top">
+                <div>
+                  <h2>Daily 5-Minute Review Queue</h2>
+                  <p className="muted-note">
+                    Prioritizes quizzes you missed first, then your oldest passed checks, then fresh
+                    unattempted topics.
+                  </p>
+                </div>
+                {reviewQueue && (
+                  <span className="placement-pill">
+                    <History size={15} />
+                    {reviewQueue.breakdown.missed} missed · {reviewQueue.breakdown.passed} passed
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="quiz-list">
+              {(reviewQueue?.items ?? []).map((item) => (
+                <div key={`${item.quiz.id}-${resetEpoch}`} className="review-item-wrap">
+                  <div className="review-item-meta">
+                    <span className={`review-reason-pill reason-${item.reason}`}>
+                      {item.reason === "missed"
+                        ? "Weak Spot"
+                        : item.reason === "review"
+                          ? "Spaced Refresh"
+                          : "Fresh Topic"}
+                    </span>
+                    <button
+                      className="jump-pill"
+                      onClick={() => {
+                        if (item.module_id) setSelectedId(item.module_id);
+                      }}
+                    >
+                      From: {item.module_title}
+                    </button>
+                  </div>
+                  <QuizCard
+                    question={item.quiz}
+                    savedState={progress.quizzes[item.quiz.id]}
+                    onOpenInStepper={onOpenInStepper}
+                    onProgressUpdate={handleProgressUpdate}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : selectedId === "complexity_lab" ? (
+          <StepCountLab onOpenInStepper={onOpenInStepper} />
         ) : activeModule ? (
           <div className="learn-content">
             <div className="lesson-hero">
               <div className="lesson-hero-top">
                 <div>
                   <div className="topic-badges-row">
-                    <span className="difficulty-pill">{activeModule.difficulty}</span>
+                    <span className={`difficulty-pill ${difficultyClass(activeModule.difficulty)}`}>
+                      {activeModule.difficulty}
+                    </span>
                     <span className="tag">{activeModule.track}</span>
                     {activeModule.source === "custom" && <span className="tag">Custom</span>}
                     {activeModule.source === "pack" && <span className="tag">Pack</span>}
@@ -272,7 +393,6 @@ export function LearnModeView({
                     onClick={() => void handleExportLesson(activeModule.id)}
                     title="Download as shareable Lesson Pack JSON"
                   >
-                    <Download size={14} />
                     Export JSON
                   </button>
                   {activeModule.source === "custom" && (
@@ -284,7 +404,6 @@ export function LearnModeView({
                           setStudioOpen(true);
                         }}
                       >
-                        <Edit3 size={14} />
                         Edit
                       </button>
                       <button
@@ -292,7 +411,7 @@ export function LearnModeView({
                         onClick={() => void handleDeleteLesson(activeModule.id)}
                         title="Delete custom lesson"
                       >
-                        <Trash2 size={14} />
+                        Delete
                       </button>
                     </>
                   )}
@@ -384,7 +503,7 @@ export function LearnModeView({
                   question={q}
                   savedState={progress.quizzes[q.id]}
                   onOpenInStepper={onOpenInStepper}
-                  onProgressUpdate={setProgress}
+                  onProgressUpdate={handleProgressUpdate}
                 />
               ))}
             </div>
@@ -401,6 +520,7 @@ export function LearnModeView({
           setModules(allMods);
           setProgress(nextProgress);
           setSelectedId(savedMod.id);
+          void refreshReview();
         }}
       />
     </div>

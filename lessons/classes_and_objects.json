@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "module": {
+    "id": "pack_classes_and_objects",
+    "track": "Architecture & Patterns",
+    "difficulty": "Intermediate",
+    "source": "pack",
+    "tier": 2,
+    "order": 3,
+    "title": "Classes, Objects & Shared Refs",
+    "subtitle": "How classes bundle state + methods, and why two variables can share one object",
+    "prerequisites": ["mod_1_state", "mod_3_functions"],
+    "concepts": ["class", "__init__ / self", "methods", "shared references"],
+    "lesson_points": [
+      "A class is a blueprint; calling Ship(...) builds an object instance in memory and runs __init__(self, ...).",
+      "Methods are functions attached to the class—'self' automatically refers to whichever object you called it on.",
+      "Assigning alias = hero_ship does NOT copy the object; both names point to the exact same object card in memory!"
+    ],
+    "example_code": "class Ship:\n    def __init__(self, name, fuel):\n        self.name = name\n        self.fuel = fuel\n\n    def burn(self, amount):\n        self.fuel = max(0, self.fuel - amount)\n\nhero = Ship(\"Nova\", 50)\nalias = hero\nalias.burn(15)\nprint(hero.name, hero.fuel)\n",
+    "quizzes": [
+      {
+        "id": "cls_predict",
+        "kind": "predict",
+        "title": "Shared Object Aliasing",
+        "prompt": "What does hero.fuel print after alias.burn(15) runs?",
+        "code": "class Ship:\n    def __init__(self, fuel):\n        self.fuel = fuel\n    def burn(self, n):\n        self.fuel -= n\n\nhero = Ship(50)\nalias = hero\nalias.burn(15)\nprint(hero.fuel)\n",
+        "options": ["50", "35", "15", "Error"],
+        "correct_index": 1,
+        "explanation": "hero and alias point to the exact same Ship object in memory, so burning 15 via alias lowers hero.fuel to 35."
+      },
+      {
+        "id": "cls_spot_bug",
+        "kind": "spot_bug",
+        "title": "Spot the Missing 'self'",
+        "prompt": "Click the line in burn() that creates a temporary local variable instead of updating the Ship object's field.",
+        "code": "class Ship:\n    def __init__(self, fuel):\n        self.fuel = fuel\n    def burn(self, amount):\n        fuel = self.fuel - amount\n\ns = Ship(40)\ns.burn(10)\nprint(s.fuel)\n",
+        "correct_line": 5,
+        "explanation": "Line 5 writes 'fuel = ...' (a local variable that vanishes on return) instead of 'self.fuel = ...'."
+      },
+      {
+        "id": "cls_explain",
+        "kind": "explain",
+        "title": "Why Does Aliasing Surprise Devs?",
+        "prompt": "Why does modifying 'alias' in 'alias = hero' also change 'hero'?",
+        "code": "hero = Ship(50)\nalias = hero\nalias.burn(15)\n",
+        "rubric_keywords": ["same", "object", "reference", "point", "copy", "memory", "alias", "shared"],
+        "sample_explanation": "Assigning alias = hero copies the reference pointing to the same Ship object in memory rather than making a separate copy.",
+        "explanation": "Python variables hold references to objects; mutating through one reference affects every variable sharing that object."
+      }
+    ]
+  }
+}

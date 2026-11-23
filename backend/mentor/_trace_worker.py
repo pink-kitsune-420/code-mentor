@@ -72,31 +72,81 @@ def _serialize_value(value: Any, depth: int = 0) -> dict[str, Any]:
         return {"type": type(value).__name__, "shape": "other", "value": repr(value)[:120], "repr": repr(value)[:120]}
     if _is_grid2d(value):
         grid = [[cell for cell in row] for row in value]
-        return {"type": "list[list]", "shape": "grid2d", "value": grid, "repr": repr(grid)}
+        return {
+            "type": "list[list]",
+            "shape": "grid2d",
+            "value": grid,
+            "repr": repr(grid),
+            "obj_id": id(value),
+        }
     if isinstance(value, (list, tuple)):
         items = [_serialize_value(v, depth + 1)["value"] for v in value[:32]]
-        return {"type": type(value).__name__, "shape": "list", "value": items, "repr": repr(value)[:160]}
+        out: dict[str, Any] = {
+            "type": type(value).__name__,
+            "shape": "list",
+            "value": items,
+            "repr": repr(value)[:160],
+        }
+        if isinstance(value, list):
+            out["obj_id"] = id(value)
+        return out
     if isinstance(value, dict):
         entries = {}
         for idx, (k, v) in enumerate(value.items()):
             if idx >= 24:
                 break
             entries[str(k)] = _serialize_value(v, depth + 1)["value"]
-        return {"type": "dict", "shape": "dict", "value": entries, "repr": repr(value)[:160]}
+        return {
+            "type": "dict",
+            "shape": "dict",
+            "value": entries,
+            "repr": repr(value)[:160],
+            "obj_id": id(value),
+        }
     if isinstance(value, set):
         items = [_serialize_value(v, depth + 1)["value"] for v in list(value)[:24]]
-        return {"type": "set", "shape": "list", "value": items, "repr": repr(value)[:160]}
+        return {
+            "type": "set",
+            "shape": "list",
+            "value": items,
+            "repr": repr(value)[:160],
+            "obj_id": id(value),
+        }
+    if hasattr(value, "__dict__") and not isinstance(
+        value, (type, types.ModuleType, types.FunctionType, types.BuiltinFunctionType)
+    ):
+        fields: dict[str, Any] = {}
+        for idx, (k, v) in enumerate(vars(value).items()):
+            if k.startswith("_") or idx >= 20:
+                continue
+            fields[str(k)] = _serialize_value(v, depth + 1)["value"]
+        cls_name = type(value).__name__
+        field_preview = ", ".join(f"{k}={v!r}" for k, v in list(fields.items())[:4])
+        return {
+            "type": cls_name,
+            "shape": "object",
+            "value": {"class_name": cls_name, "fields": fields},
+            "repr": f"{cls_name}({field_preview})"[:160],
+            "obj_id": id(value),
+        }
     return {"type": type(value).__name__, "shape": "other", "value": repr(value)[:120], "repr": repr(value)[:120]}
 
 
 def _capture_locals(frame: types.FrameType) -> dict[str, dict[str, Any]]:
     result: dict[str, dict[str, Any]] = {}
+    obj_id_map: dict[int, int] = {}
     for name, val in frame.f_locals.items():
         if name.startswith("__"):
             continue
         if isinstance(val, (types.FunctionType, types.ModuleType, types.BuiltinFunctionType, type)):
             continue
-        result[name] = _serialize_value(val)
+        snap = _serialize_value(val)
+        raw_oid = snap.get("obj_id")
+        if isinstance(raw_oid, int):
+            if raw_oid not in obj_id_map:
+                obj_id_map[raw_oid] = len(obj_id_map) + 1
+            snap["obj_id"] = obj_id_map[raw_oid]
+        result[name] = snap
     return result
 
 

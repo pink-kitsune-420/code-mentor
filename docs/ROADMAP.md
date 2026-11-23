@@ -31,14 +31,15 @@
 - **Tracer-Verified Examples & Auto-Repair:** Every AI-generated lesson runs through `tracer.py` (with 1 automatic repair pass on error), and saving/importing requires a clean trace.
 - **Shareable JSON Lesson Packs:** Built-in `lessons/` pack loading (`lessons/recursion_basics.json`, `lessons/binary_search.json`), SQLite `custom_lessons` persistence, and 1-click JSON Export/Import.
 
+### Milestone 4 — Intermediate → Expert Curriculum, Object Cards, Step-Count Lab & Daily Review
+- **Object & Shared-Reference Cards:** Custom class instances render as structured field cards in Visual Memory Boxes with `Shared with:` badges whenever two variables point to the same mutable object.
+- **Step-Count Complexity Lab:** Interactive side-by-side comparison of algorithm pairs (`O(n)` vs `O(log n)`, `O(n^2)` vs `O(n)`, `O(2^n)` vs `O(n)`) across selectable `N` sizes backed by real tracer step counts.
+- **Intermediate → Expert Lesson Packs:** Curated JSON packs in `lessons/` covering `Classes & Objects`, `Hash Maps & Stacks`, `Defensive Code & Exceptions`, `Decorators & Generators`, and `Auditing AI-Written Code`.
+- **Daily Review / Weak Spots Queue:** Prioritized spaced-repetition queue surfacing missed quizzes first, oldest passed checks second, and fresh topics when caught up.
+
 ---
 
 ## Upcoming Milestones
-
-### Milestone 4 — Intermediate → Expert Topic Catalog
-- **Data Structures & Algorithms Visually:** Recursion call-stack animations, Hash Maps, Stacks/Queues, Trees/Graphs, Binary Search, and Step-Count complexity comparisons.
-- **Architecture, Patterns & Async:** Classes & State Machines, Decorators/Closures, Generators, Error Handling, and Unit Testing contracts.
-- **Reviewing AI-Written Code Track:** Dedicated advanced practice track focused on spotting silent assumptions, missing edge-case tests, and contract mismatches in AI-generated snippets/diffs.
 
 ### Milestone 5 — Voice Walkthroughs & Multi-Language Transfer
 - **Optional Voice Tutor:** Hands-free speech input (Whisper STT) and diagram/step narration (Kokoro/Piper TTS).
