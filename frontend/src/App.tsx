@@ -629,8 +629,8 @@ export default function App() {
         ) : (
           <div className="learn-topbar-summary">
             <span>
-              Tier 0 Placement + Tier 1 Python Syllabus
-              {masterySummary ? ` · ${masterySummary.mastered}/${masterySummary.total} Modules Mastered` : ""}
+              Beginner → Expert Topic Catalog
+              {masterySummary ? ` · ${masterySummary.mastered}/${masterySummary.total} Topics Mastered` : ""}
             </span>
           </div>
         )}

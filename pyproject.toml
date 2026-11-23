@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "code-mentor"
 version = "0.1.0"
-description = "Visual AI Code Mentor & Agentic Mastery local web app."
+description = "Beginner-to-expert visual Python code tutor, live execution stepper, and interactive lesson studio."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]

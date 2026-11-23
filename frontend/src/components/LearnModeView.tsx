@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Award, BookOpen, CheckCircle2, Compass, Play, RotateCcw } from "lucide-react";
+import { ArrowRight, Award, BookOpen, CheckCircle2, Compass, Play, RotateCcw } from "lucide-react";
 import type {
   CurriculumModule,
   CurriculumProgress,
@@ -54,6 +54,17 @@ export function LearnModeView({
   const placementPassed = placement.filter((q) => progress.quizzes[q.id]?.correct).length;
   const activeModule = modules.find((m) => m.id === selectedId) ?? null;
 
+  const moduleById = useMemo(() => {
+    const map = new Map<string, CurriculumModule>();
+    modules.forEach((m) => map.set(m.id, m));
+    return map;
+  }, [modules]);
+
+  const nextTopics = useMemo(() => {
+    if (!activeModule) return [];
+    return modules.filter((m) => m.prerequisites.includes(activeModule.id));
+  }, [activeModule, modules]);
+
   async function handleReset() {
     const resp = await fetch("/api/curriculum/reset", { method: "POST" });
     const data = (await resp.json()) as { progress: CurriculumProgress };
@@ -61,7 +72,7 @@ export function LearnModeView({
   }
 
   if (loading) {
-    return <div className="learn-loading">Loading starter syllabus...</div>;
+    return <div className="learn-loading">Loading topic catalog...</div>;
   }
 
   return (
@@ -70,7 +81,7 @@ export function LearnModeView({
         <div className="learn-rail-header">
           <div className="subcard-title">
             <Compass size={15} />
-            Scaffolded Syllabus
+            Topic Catalog
           </div>
           <span className="tag">
             {masteredCount}/{modules.length} Mastered
@@ -83,7 +94,7 @@ export function LearnModeView({
             onClick={() => setSelectedId("placement")}
           >
             <div className="syllabus-item-top">
-              <strong>Tier 0: Placement Check</strong>
+              <strong>Skill Check (Optional)</strong>
               <span className="syllabus-score">
                 {placementPassed}/{placement.length}
               </span>
@@ -91,7 +102,7 @@ export function LearnModeView({
             <span className="syllabus-sub">5 quick checks to spot what you already know</span>
           </button>
 
-          <div className="rail-divider">Tier 1 — Python Foundations</div>
+          <div className="rail-divider">Foundations Track</div>
 
           {modules.map((mod) => {
             const st = progress.mastery[mod.id]?.status ?? "not_started";
@@ -112,7 +123,9 @@ export function LearnModeView({
                     </span>
                   )}
                 </div>
-                <span className="syllabus-sub">{mod.subtitle}</span>
+                <span className="syllabus-sub">
+                  {mod.difficulty} · {mod.subtitle}
+                </span>
               </button>
             );
           })}
@@ -132,9 +145,9 @@ export function LearnModeView({
             <div className="lesson-hero">
               <div className="lesson-hero-top">
                 <div>
-                  <h2>Tier 0: 5-Minute Visual Placement Check</h2>
+                  <h2>5-Minute Visual Skill Check</h2>
                   <p className="muted-note">
-                    Answer these 5 zero-typing checks to see which concepts already click and where to start.
+                    Optional check to see which concepts already click—or jump straight into any topic on the left.
                   </p>
                 </div>
                 <span className="placement-pill">
@@ -142,13 +155,13 @@ export function LearnModeView({
                   Score: {placementPassed} / {placement.length}
                 </span>
               </div>
-              {placementPassed >= 4 && modules[0] && (
+              {placementPassed >= 4 && (
                 <div className="placement-tip">
-                  Strong intuition! Feel free to start straight at{" "}
+                  Strong intuition! Feel free to jump straight into{" "}
                   <button className="jump-pill active" onClick={() => setSelectedId("mod_3_functions")}>
-                    Module 3: Functions
+                    Functions &amp; Contracts
                   </button>{" "}
-                  or review any module below.
+                  or explore any topic on the left.
                 </div>
               )}
             </div>
@@ -170,6 +183,10 @@ export function LearnModeView({
             <div className="lesson-hero">
               <div className="lesson-hero-top">
                 <div>
+                  <div className="topic-badges-row">
+                    <span className="difficulty-pill">{activeModule.difficulty}</span>
+                    <span className="tag">{activeModule.track}</span>
+                  </div>
                   <h2>{activeModule.title}</h2>
                   <p className="muted-note">{activeModule.subtitle}</p>
                 </div>
@@ -181,6 +198,43 @@ export function LearnModeView({
                   Step Through Example
                 </button>
               </div>
+
+              {(activeModule.prerequisites.length > 0 || nextTopics.length > 0) && (
+                <div className="lesson-links-row">
+                  {activeModule.prerequisites.length > 0 && (
+                    <div className="lesson-link-group">
+                      <span className="muted-note">Builds on:</span>
+                      {activeModule.prerequisites.map((preId) => {
+                        const pre = moduleById.get(preId);
+                        if (!pre) return null;
+                        return (
+                          <button
+                            key={preId}
+                            className="jump-pill"
+                            onClick={() => setSelectedId(preId)}
+                          >
+                            {pre.title}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {nextTopics.length > 0 && (
+                    <div className="lesson-link-group">
+                      <span className="muted-note">Leads to:</span>
+                      {nextTopics.map((nxt) => (
+                        <button
+                          key={nxt.id}
+                          className="jump-pill"
+                          onClick={() => setSelectedId(nxt.id)}
+                        >
+                          {nxt.title} <ArrowRight size={11} style={{ verticalAlign: "middle" }} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="concept-row">
                 {activeModule.concepts.map((c) => (
@@ -199,7 +253,7 @@ export function LearnModeView({
               <div className="lesson-example-card">
                 <div className="subcard-title" style={{ marginBottom: "6px" }}>
                   <BookOpen size={14} />
-                  Interactive Toy Example
+                  Interactive Example
                 </div>
                 <div className="quiz-code-box">
                   {activeModule.example_code

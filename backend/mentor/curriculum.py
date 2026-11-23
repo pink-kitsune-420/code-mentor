@@ -1,4 +1,4 @@
-"""Tier 0 Placement Check and Tier 1 Scaffolded Python Curriculum (Milestone 2)."""
+"""Skill Check and Topic-Based Educational Curriculum."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 QuizKind = Literal["predict", "spot_bug", "reorder", "explain"]
+DifficultyLevel = Literal["Beginner", "Intermediate", "Advanced", "Expert"]
 
 
 class QuizQuestion(BaseModel):
@@ -28,13 +29,16 @@ class QuizQuestion(BaseModel):
 
 
 class CurriculumModule(BaseModel):
-    """A beginner-friendly Tier 1 module anchored to interactive Stepper code."""
+    """An educational topic lesson anchored to interactive Stepper code."""
 
     id: str
+    track: str
+    difficulty: DifficultyLevel
     tier: int
     order: int
     title: str
     subtitle: str
+    prerequisites: list[str] = []
     concepts: list[str]
     lesson_points: list[str]
     example_code: str
@@ -118,9 +122,11 @@ print(first_item([]))
 TIER1_MODULES: list[CurriculumModule] = [
     CurriculumModule(
         id="mod_1_state",
+        track="Foundations",
+        difficulty="Beginner",
         tier=1,
         order=1,
-        title="Module 1: State & Data Shapes",
+        title="State & Data Shapes",
         subtitle="Variables, numbers, lists, and dictionaries",
         concepts=["variable", "dict {key: val}", "list [a, b]", "in-place update"],
         lesson_points=[
@@ -198,10 +204,13 @@ print(ship["fuel"], len(ship["cargo"]))
     ),
     CurriculumModule(
         id="mod_2_loops",
+        track="Foundations",
+        difficulty="Beginner",
         tier=1,
         order=2,
-        title="Module 2: Decisions & Loops",
+        title="Decisions & Loops",
         subtitle="if / elif / else gates and for-loop iteration",
+        prerequisites=["mod_1_state"],
         concepts=["if / else", "for loop", "accumulator", "nested grid"],
         lesson_points=[
             "An 'if' statement is a gate: its indented block only runs when the condition evaluates to True.",
@@ -278,10 +287,13 @@ print(count)
     ),
     CurriculumModule(
         id="mod_3_functions",
+        track="Foundations",
+        difficulty="Beginner",
         tier=1,
         order=3,
-        title="Module 3: Functions & Contracts",
+        title="Functions & Contracts",
         subtitle="def, parameters, return values, and the call stack",
+        prerequisites=["mod_1_state", "mod_2_loops"],
         concepts=["def", "parameters", "return", "local scope"],
         lesson_points=[
             "Running 'def' loads a reusable recipe into memory—it waits until called with ().",
@@ -367,10 +379,13 @@ print(total)
     ),
     CurriculumModule(
         id="mod_4_modules",
+        track="Foundations",
+        difficulty="Beginner",
         tier=1,
         order=4,
-        title="Module 4: Connecting Parts",
+        title="Connecting Parts",
         subtitle="Separating data from pure logic functions",
+        prerequisites=["mod_3_functions"],
         concepts=["pure function", "data vs logic", "pipeline", "composition"],
         lesson_points=[
             "Projects split 'data shapes' (dicts/objects) from 'logic functions' that transform them.",
@@ -455,10 +470,13 @@ print(step_b(step_a(4)))
     ),
     CurriculumModule(
         id="mod_5_debugging",
+        track="Foundations",
+        difficulty="Beginner",
         tier=1,
         order=5,
-        title="Module 5: Reading Failures & Tests",
-        subtitle="Assertions, edge cases, and common agent mistakes",
+        title="Reading Failures & Tests",
+        subtitle="Assertions, edge cases, and common code mistakes",
+        prerequisites=["mod_2_loops", "mod_3_functions"],
         concepts=["assert", "edge case", "off-by-one", "None / empty"],
         lesson_points=[
             "Tests use 'assert condition' to verify a function keeps its promise on normal and tricky inputs.",

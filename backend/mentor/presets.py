@@ -67,7 +67,7 @@ print("Solid voxels found:", solid_count)
     ),
     PresetLesson(
         id="agent_command_router",
-        title="Mini Agent Command Router",
+        title="Mini Command Router",
         project_link="Functions & Stack",
         difficulty="Starter 3",
         summary="See how functions take inputs, return results, and push/pop the Call Stack.",

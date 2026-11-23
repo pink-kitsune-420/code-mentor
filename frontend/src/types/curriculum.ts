@@ -16,19 +16,22 @@ export interface QuizQuestion {
   explanation: string;
 }
 
+export type DifficultyLevel = "Beginner" | "Intermediate" | "Advanced" | "Expert";
+
 export interface CurriculumModule {
   id: string;
+  track: string;
+  difficulty: DifficultyLevel;
   tier: number;
   order: number;
   title: string;
-  subtitle: str_or_string;
+  subtitle: string;
+  prerequisites: string[];
   concepts: string[];
   lesson_points: string[];
   example_code: string;
   quizzes: QuizQuestion[];
 }
-
-type str_or_string = string;
 
 export interface CurriculumProgress {
   mastery: Record<string, { status: string; score: number }>;

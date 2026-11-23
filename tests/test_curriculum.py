@@ -18,7 +18,11 @@ def _make_client(tmp_path: Path, monkeypatch) -> TestClient:
 
 
 def test_all_tier1_example_code_executes_cleanly() -> None:
-    for mod in get_all_modules():
+    modules = get_all_modules()
+    valid_ids = {m.id for m in modules}
+    for mod in modules:
+        for pre in mod.prerequisites:
+            assert pre in valid_ids, f"{mod.id} references unknown prerequisite {pre}"
         res = trace_python_code(mod.example_code)
         assert res.error is None, f"{mod.id} failed to trace: {res.error}"
         assert res.total_steps > 0

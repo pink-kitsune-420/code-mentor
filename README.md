@@ -5,12 +5,13 @@
 > **Important — Verify AI Explanations Yourself:**
 > AI models are **not** 100% accurate and can hallucinate or miss subtle behavior. Always pair AI explanations with your own understanding, the deterministic execution trace, Visual Memory Boxes, and independent reading/research before treating any AI answer as fact.
 
-An open-source, local-first visual code learning cockpit. It pairs a deterministic Python `sys.settrace` execution stepper, AST plain-English glossary, visual memory boxes, an output terminal, and an optional AI step narrator (compatible with Ollama, LM Studio, `llama.cpp`, or any OpenAI-compatible API).
+An open-source, local-first **Beginner → Expert Visual Code Tutor**. It helps you build real code literacy through a deterministic Python execution stepper, visual memory boxes, an AST plain-English glossary, zero-typing interactive quizzes, and an optional AI mentor (compatible with Ollama, LM Studio, `llama.cpp`, or any OpenAI-compatible API).
 
-## Features (Alpha v0.1 / Milestone 1)
+## Features
 
+- **Topic-Based Skill Catalog & Zero-Typing Quizzes:** Explore programming topics freely (`Beginner` → `Expert`) or take the optional 5-minute Skill Check. Practice with *Predict Output*, *Spot the Bug*, *Reorder Logic Blocks*, and *Explain in Plain English*—then jump straight into the live stepper on any snippet.
 - **Deterministic Live Execution Stepper:** Runs Python snippets in an isolated subprocess (`python -I`) with step limits and timeouts—recording exact line-by-line state without AI guessing.
-- **Visual Memory Boxes:** Renders numbers as gauges, lists as indexed strips, dicts as tables, and 2D arrays as visual voxel grids with emerald/amber diff highlights.
+- **Visual Memory Boxes:** Renders numbers as gauges, lists as indexed strips, dicts as tables, and 2D arrays as visual grids with emerald/amber diff highlights.
 - **Output Terminal & Flow Inspector:** Dedicated terminal window for `print()` output alongside a Call Stack, Loop Iterations, and Line-Jump inspector.
 - **Resizable & Draggable IDE Cockpit:** Full-viewport (`100dvh`) split layout with draggable resize splitters (`⋮` / `⋯`), drag-and-drop `⋮⋮` title bar window swapping, maximize/hide/restore controls, and `Reset Layout`.
 - **AST Plain-English Glossary:** Inspects Python syntax structures deterministically using `ast.parse()`.
@@ -47,7 +48,11 @@ You can configure your model directly in the UI (**Setup AI** button in the top 
 export MENTOR_LLAMA_URL=http://127.0.0.1:11434/v1
 export MENTOR_DEFAULT_MODEL=llama3.2
 ```
-If no AI server is configured or running, the deterministic stepper, memory boxes, terminal, and AST glossary continue to work 100% offline.
+If no AI server is configured or running, the deterministic stepper, memory boxes, terminal, AST glossary, and offline quizzes continue to work 100%.
+
+## Keyboard Shortcuts (Stepper Mode)
+- `←` / `→`: Step backward / forward
+- `Space`: Play / Pause
 
 ## Tests & Lint
 ```bash
@@ -56,14 +61,10 @@ uv run pytest -v
 cd frontend && npm run build
 ```
 
-## Keyboard Shortcuts (Stepper Mode)
-- `←` / `→`: Step backward / forward
-- `Space`: Play / Pause
-
-## Roadmap & Security
-- Planned milestones live in [docs/ROADMAP.md](docs/ROADMAP.md).
-- Local-only execution scope and safety notes are in [SECURITY.md](SECURITY.md).
-- Contribution guidelines are in [CONTRIBUTING.md](CONTRIBUTING.md).
+## Roadmap, Security & Contributing
+- Vision and upcoming milestones (including the Lesson Creator Studio): [docs/ROADMAP.md](docs/ROADMAP.md)
+- Local-only execution scope and safety notes: [SECURITY.md](SECURITY.md)
+- Contribution guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## License
 [MIT](LICENSE)
