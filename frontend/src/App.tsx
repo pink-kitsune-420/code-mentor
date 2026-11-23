@@ -604,6 +604,9 @@ export default function App() {
                 void runTrace(chosen.code, chosen.id);
               }}
             >
+              {activePresetId === "__custom__" && (
+                <option value="__custom__">Lesson / Quiz Snippet</option>
+              )}
               {presets.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.difficulty}: {p.title} ({p.project_link})
@@ -680,6 +683,7 @@ export default function App() {
       {appMode === "learn" ? (
         <LearnModeView
           onOpenInStepper={(snippet) => {
+            setActivePresetId("__custom__");
             setCode(snippet);
             setIsEditing(false);
             setAppMode("stepper");

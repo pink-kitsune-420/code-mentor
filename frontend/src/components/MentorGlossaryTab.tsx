@@ -27,12 +27,16 @@ export function MentorGlossaryTab({
 }: MentorGlossaryTabProps) {
   const [question, setQuestion] = useState("");
   const [model, setModel] = useState(defaultModel);
-  const [explanation, setExplanation] = useState<string | null>(null);
+  const [explanation, setExplanation] = useState<{ text: string; step: number } | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setModel(defaultModel);
   }, [defaultModel]);
+
+  useEffect(() => {
+    setExplanation(null);
+  }, [code]);
 
   const modelChoices =
     availableModels.length > 0
@@ -58,9 +62,15 @@ export function MentorGlossaryTab({
         }),
       });
       const data = (await resp.json()) as { explanation?: string };
-      setExplanation(data.explanation ?? "No explanation returned.");
+      setExplanation({
+        text: data.explanation ?? "No explanation returned.",
+        step: frame.step,
+      });
     } catch (err) {
-      setExplanation(`Failed to reach mentor backend: ${String(err)}`);
+      setExplanation({
+        text: `Failed to reach mentor backend: ${String(err)}`,
+        step: frame.step,
+      });
     } finally {
       setLoading(false);
     }
@@ -152,7 +162,12 @@ export function MentorGlossaryTab({
 
         {explanation && (
           <div className="narrator-reply-wrap">
-            <div className="narrator-reply">{explanation}</div>
+            {frame && explanation.step !== frame.step && (
+              <div className="stale-step-note">
+                Answered for Step {explanation.step + 1} (now viewing Step {frame.step + 1})
+              </div>
+            )}
+            <div className="narrator-reply">{explanation.text}</div>
             <div className="ai-inline-warning">
               <AlertTriangle size={12} className="disclaimer-icon" />
               <span>AI can be wrong—verify against the trace &amp; your own research.</span>

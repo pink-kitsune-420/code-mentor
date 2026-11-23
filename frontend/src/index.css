@@ -1222,6 +1222,15 @@ textarea {
   gap: 5px;
 }
 
+.stale-step-note {
+  font-size: 0.72rem;
+  color: var(--muted);
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  align-self: flex-start;
+}
+
 .ai-inline-warning {
   display: flex;
   align-items: center;

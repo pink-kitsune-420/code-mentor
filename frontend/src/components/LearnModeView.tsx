@@ -22,6 +22,7 @@ export function LearnModeView({
   const [modules, setModules] = useState<CurriculumModule[]>([]);
   const [progress, setProgress] = useState<CurriculumProgress>({ mastery: {}, quizzes: {} });
   const [selectedId, setSelectedId] = useState<string>("placement");
+  const [resetEpoch, setResetEpoch] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -69,6 +70,7 @@ export function LearnModeView({
     const resp = await fetch("/api/curriculum/reset", { method: "POST" });
     const data = (await resp.json()) as { progress: CurriculumProgress };
     setProgress(data.progress);
+    setResetEpoch((e) => e + 1);
   }
 
   if (loading) {
@@ -169,7 +171,7 @@ export function LearnModeView({
             <div className="quiz-list">
               {placement.map((q) => (
                 <QuizCard
-                  key={q.id}
+                  key={`${q.id}-${resetEpoch}`}
                   question={q}
                   savedState={progress.quizzes[q.id]}
                   onOpenInStepper={onOpenInStepper}
@@ -272,7 +274,7 @@ export function LearnModeView({
             <div className="quiz-list">
               {activeModule.quizzes.map((q) => (
                 <QuizCard
-                  key={q.id}
+                  key={`${q.id}-${resetEpoch}`}
                   question={q}
                   savedState={progress.quizzes[q.id]}
                   onOpenInStepper={onOpenInStepper}

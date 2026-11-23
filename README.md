@@ -27,14 +27,14 @@ An open-source, local-first **Beginner → Expert Visual Code Tutor**. It helps 
 ```bash
 uv sync --group dev
 (cd frontend && npm install && npm run build)
-uv run uvicorn mentor.app:app --host 127.0.0.1 --port 8090
+uv run code-mentor --open
 ```
-Open `http://127.0.0.1:8090`.
+*(Or run `uv run uvicorn mentor.app:app --host 127.0.0.1 --port 8090` directly and open `http://127.0.0.1:8090`.)*
 
 ### Development Mode (Hot Reload)
 Terminal 1:
 ```bash
-uv run uvicorn mentor.app:app --reload --port 8090
+uv run code-mentor --reload
 ```
 Terminal 2:
 ```bash

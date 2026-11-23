@@ -23,6 +23,7 @@ export function QuizCard({
   );
   const [explainText, setExplainText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [result, setResult] = useState<QuizAnswerResponse | null>(null);
 
   const codeLines = useMemo(() => question.code.trimEnd().split("\n"), [question.code]);
@@ -41,6 +42,7 @@ export function QuizCard({
 
   async function submitAnswer(overrideIndex?: number) {
     setSubmitting(true);
+    setSubmitError(null);
     try {
       const resp = await fetch("/api/curriculum/answer", {
         method: "POST",
@@ -53,9 +55,14 @@ export function QuizCard({
           explanation_text: question.kind === "explain" ? explainText : null,
         }),
       });
+      if (!resp.ok) {
+        throw new Error(`HTTP ${resp.status}`);
+      }
       const data = (await resp.json()) as QuizAnswerResponse;
       setResult(data);
       onProgressUpdate(data.progress);
+    } catch (err) {
+      setSubmitError(`Could not check answer: ${String(err)}`);
     } finally {
       setSubmitting(false);
     }
@@ -204,6 +211,12 @@ export function QuizCard({
               {submitting ? "Checking..." : "Check Mental Model"}
             </button>
           </div>
+        </div>
+      )}
+
+      {submitError && (
+        <div className="quiz-feedback warn">
+          <strong>Submission Error:</strong> {submitError}
         </div>
       )}
 
