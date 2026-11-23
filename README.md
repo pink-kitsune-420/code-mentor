@@ -56,5 +56,14 @@ uv run pytest -v
 cd frontend && npm run build
 ```
 
+## Keyboard Shortcuts (Stepper Mode)
+- `←` / `→`: Step backward / forward
+- `Space`: Play / Pause
+
+## Roadmap & Security
+- Planned milestones live in [docs/ROADMAP.md](docs/ROADMAP.md).
+- Local-only execution scope and safety notes are in [SECURITY.md](SECURITY.md).
+- Contribution guidelines are in [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## License
 [MIT](LICENSE)

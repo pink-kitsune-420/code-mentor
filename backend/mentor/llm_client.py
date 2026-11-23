@@ -3,11 +3,20 @@
 from __future__ import annotations
 
 import json
+import re
 
 import httpx
 
 from mentor.db import get_ai_config
 from mentor.tracer import TraceFrame
+
+
+def strip_thinking_tags(text: str) -> str:
+    """Remove <think>...</think> reasoning blocks emitted by thinking models."""
+    cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+    if cleaned.startswith("<think>"):
+        return ""
+    return cleaned
 
 
 def normalize_v1_base(url: str) -> str:
@@ -127,7 +136,8 @@ async def explain_trace_step(
             )
             resp.raise_for_status()
             payload = resp.json()
-            text = payload["choices"][0]["message"]["content"].strip()
+            raw_text = payload["choices"][0]["message"]["content"]
+            text = strip_thinking_tags(raw_text) or raw_text.strip()
             return {"ok": True, "model": chosen_model, "explanation": text}
     except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
         return {

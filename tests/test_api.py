@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from mentor import config, db
 from mentor.app import app
-from mentor.llm_client import normalize_v1_base
+from mentor.llm_client import normalize_v1_base, strip_thinking_tags
 
 
 def _make_client(tmp_path: Path, monkeypatch) -> TestClient:
@@ -87,3 +87,8 @@ def test_normalize_v1_base_handles_with_and_without_suffix() -> None:
     assert normalize_v1_base("http://127.0.0.1:8080") == "http://127.0.0.1:8080/v1"
     assert normalize_v1_base("http://127.0.0.1:11434/v1/") == "http://127.0.0.1:11434/v1"
     assert normalize_v1_base("https://api.openai.com/v1") == "https://api.openai.com/v1"
+
+
+def test_strip_thinking_tags_removes_reasoning_blocks() -> None:
+    raw = "<think>\nlet me reason step by step\n</think>\nLine 2 updates fuel."
+    assert strip_thinking_tags(raw) == "Line 2 updates fuel."

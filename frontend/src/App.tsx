@@ -80,6 +80,7 @@ export default function App() {
   const [llamaOnline, setLlamaOnline] = useState<boolean>(false);
   const [llamaModels, setLlamaModels] = useState<string[]>([]);
   const [showAiSettings, setShowAiSettings] = useState<boolean>(false);
+  const [traceFetchError, setTraceFetchError] = useState<string | null>(null);
 
   const dragSourceRef = useRef<{ windowId: WindowId; fromSlot: SlotId } | null>(null);
   const leftColRef = useRef<HTMLDivElement>(null);
@@ -96,17 +97,25 @@ export default function App() {
 
   const runTrace = useCallback(async (sourceCode: string, presetId?: string) => {
     setIsPlaying(false);
-    const resp = await fetch("/api/trace", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: sourceCode, preset_id: presetId ?? null }),
-    });
-    const data = (await resp.json()) as TraceResponse;
-    setTracedCode(sourceCode);
-    setTrace(data.trace);
-    setGlossary(data.glossary);
-    setCurrentStep(0);
-    setSelectedLine(null);
+    setTraceFetchError(null);
+    try {
+      const resp = await fetch("/api/trace", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: sourceCode, preset_id: presetId ?? null }),
+      });
+      if (!resp.ok) {
+        throw new Error(`HTTP ${resp.status}`);
+      }
+      const data = (await resp.json()) as TraceResponse;
+      setTracedCode(sourceCode);
+      setTrace(data.trace);
+      setGlossary(data.glossary);
+      setCurrentStep(0);
+      setSelectedLine(null);
+    } catch (err) {
+      setTraceFetchError(`Could not run trace against backend: ${String(err)}`);
+    }
   }, []);
 
   useEffect(() => {
@@ -147,6 +156,29 @@ export default function App() {
     }, speedMs);
     return () => window.clearInterval(timer);
   }, [isPlaying, speedMs, trace]);
+
+  useEffect(() => {
+    const total = trace?.frames.length ?? 0;
+    function onKeyDown(e: KeyboardEvent) {
+      if (showAiSettings || isEditing || total === 0) return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setIsPlaying(false);
+        setCurrentStep((prev) => Math.max(0, prev - 1));
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setIsPlaying(false);
+        setCurrentStep((prev) => Math.min(total - 1, prev + 1));
+      } else if (e.key === " ") {
+        e.preventDefault();
+        if (total > 1) setIsPlaying((p) => !p);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isEditing, showAiSettings, trace]);
 
   const activePreset = presets.find((p) => p.id === activePresetId) ?? null;
   const frames = trace?.frames ?? [];
@@ -643,9 +675,9 @@ export default function App() {
         </section>
       )}
 
-      {trace?.error && (
+      {(traceFetchError || trace?.error) && (
         <div className="error-banner">
-          <strong>Execution Notice:</strong> {trace.error}
+          <strong>Execution Notice:</strong> {traceFetchError ?? trace?.error}
         </div>
       )}
 

@@ -82,3 +82,19 @@ def test_blocked_module_import_fails_safely() -> None:
     result = trace_python_code("import os\nprint(os.getcwd())\n")
     assert result.error is not None
     assert "disabled" in result.error
+
+
+def test_empty_and_comment_only_code_returns_no_frames() -> None:
+    assert trace_python_code("").frames == []
+    comment_res = trace_python_code("# just a comment\n")
+    assert comment_res.error is None
+    assert comment_res.frames == []
+
+
+def test_large_stdout_is_capped_per_frame() -> None:
+    code = "for i in range(40):\n    print('a' * 200)\n"
+    result = trace_python_code(code)
+    assert result.error is None
+    final_stdout = result.frames[-1].stdout
+    assert "earlier output truncated" in final_stdout
+    assert len(final_stdout) <= 4100

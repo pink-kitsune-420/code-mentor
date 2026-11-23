@@ -11,6 +11,7 @@ from contextlib import redirect_stdout
 from typing import Any
 
 LESSON_FILENAME = "<lesson>"
+MAX_STDOUT_CHARS = 4000
 BLOCKED_MODULES = frozenset(
     {
         "os",
@@ -211,6 +212,8 @@ def run_trace(code: str, max_steps: int) -> dict[str, Any]:
     """Compile and trace Python code deterministically."""
     try:
         tree = ast.parse(code, filename=LESSON_FILENAME)
+        if not tree.body:
+            return {"frames": [], "truncated": False, "error": None}
         compiled = compile(tree, LESSON_FILENAME, "exec")
     except SyntaxError as exc:
         return {
@@ -278,6 +281,12 @@ def run_trace(code: str, max_steps: int) -> dict[str, Any]:
             exc_type, exc_val, _ = arg
             exc_text = f"{exc_type.__name__}: {exc_val}"
 
+        raw_stdout = stdout_buf.getvalue()
+        if len(raw_stdout) > MAX_STDOUT_CHARS:
+            capped_stdout = "... (earlier output truncated)\n" + raw_stdout[-MAX_STDOUT_CHARS:]
+        else:
+            capped_stdout = raw_stdout
+
         frames.append(
             {
                 "step": len(frames),
@@ -290,7 +299,7 @@ def run_trace(code: str, max_steps: int) -> dict[str, Any]:
                 "changes": changes,
                 "return_value": return_val,
                 "exception": exc_text,
-                "stdout": stdout_buf.getvalue(),
+                "stdout": capped_stdout,
                 "branch_info": None,
             }
         )
