@@ -1515,17 +1515,70 @@ textarea {
 
 .learn-stage {
   min-height: 0;
-  overflow-y: auto;
-  padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.learn-content {
-  max-width: 880px;
-  margin: 0 auto;
+.learn-content-wide {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding-bottom: 18px;
+  padding-right: 4px;
+}
+
+.quiz-grid-wide {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(430px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.learn-topic-split {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(380px, 0.95fr) minmax(420px, 1.05fr);
+  gap: 14px;
+}
+
+.learn-topic-guide,
+.learn-topic-quizzes {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.quiz-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+
+@media (max-width: 1120px) {
+  .learn-stage {
+    overflow-y: auto;
+  }
+
+  .learn-topic-split {
+    grid-template-columns: 1fr;
+  }
+
+  .learn-topic-guide,
+  .learn-topic-quizzes {
+    overflow: visible;
+  }
 }
 
 .lesson-hero {

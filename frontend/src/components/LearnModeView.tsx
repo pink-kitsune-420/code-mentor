@@ -141,7 +141,7 @@ export function LearnModeView({
 
       <section className="learn-stage">
         {selectedId === "placement" ? (
-          <div className="learn-content">
+          <div className="learn-content-wide">
             <div className="lesson-hero">
               <div className="lesson-hero-top">
                 <div>
@@ -166,7 +166,7 @@ export function LearnModeView({
               )}
             </div>
 
-            <div className="quiz-list">
+            <div className="quiz-grid-wide">
               {placement.map((q) => (
                 <QuizCard
                   key={q.id}
@@ -179,106 +179,114 @@ export function LearnModeView({
             </div>
           </div>
         ) : activeModule ? (
-          <div className="learn-content">
-            <div className="lesson-hero">
-              <div className="lesson-hero-top">
-                <div>
-                  <div className="topic-badges-row">
-                    <span className="difficulty-pill">{activeModule.difficulty}</span>
-                    <span className="tag">{activeModule.track}</span>
+          <div className="learn-topic-split">
+            <div className="learn-topic-guide">
+              <div className="lesson-hero">
+                <div className="lesson-hero-top">
+                  <div>
+                    <div className="topic-badges-row">
+                      <span className="difficulty-pill">{activeModule.difficulty}</span>
+                      <span className="tag">{activeModule.track}</span>
+                    </div>
+                    <h2>{activeModule.title}</h2>
+                    <p className="muted-note">{activeModule.subtitle}</p>
                   </div>
-                  <h2>{activeModule.title}</h2>
-                  <p className="muted-note">{activeModule.subtitle}</p>
+                  <button
+                    className="icon-btn primary"
+                    onClick={() => onOpenInStepper(activeModule.example_code)}
+                  >
+                    <Play size={14} />
+                    Step Through Example
+                  </button>
                 </div>
-                <button
-                  className="icon-btn primary"
-                  onClick={() => onOpenInStepper(activeModule.example_code)}
-                >
-                  <Play size={14} />
-                  Step Through Example
-                </button>
-              </div>
 
-              {(activeModule.prerequisites.length > 0 || nextTopics.length > 0) && (
-                <div className="lesson-links-row">
-                  {activeModule.prerequisites.length > 0 && (
-                    <div className="lesson-link-group">
-                      <span className="muted-note">Builds on:</span>
-                      {activeModule.prerequisites.map((preId) => {
-                        const pre = moduleById.get(preId);
-                        if (!pre) return null;
-                        return (
-                          <button
-                            key={preId}
-                            className="jump-pill"
-                            onClick={() => setSelectedId(preId)}
-                          >
-                            {pre.title}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {nextTopics.length > 0 && (
-                    <div className="lesson-link-group">
-                      <span className="muted-note">Leads to:</span>
-                      {nextTopics.map((nxt) => (
-                        <button
-                          key={nxt.id}
-                          className="jump-pill"
-                          onClick={() => setSelectedId(nxt.id)}
-                        >
-                          {nxt.title} <ArrowRight size={11} style={{ verticalAlign: "middle" }} />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="concept-row">
-                {activeModule.concepts.map((c) => (
-                  <span key={c} className="concept-chip">
-                    {c}
-                  </span>
-                ))}
-              </div>
-
-              <ul className="lesson-bullets">
-                {activeModule.lesson_points.map((pt) => (
-                  <li key={pt}>{pt}</li>
-                ))}
-              </ul>
-
-              <div className="lesson-example-card">
-                <div className="subcard-title" style={{ marginBottom: "6px" }}>
-                  <BookOpen size={14} />
-                  Interactive Example
-                </div>
-                <div className="quiz-code-box">
-                  {activeModule.example_code
-                    .trimEnd()
-                    .split("\n")
-                    .map((ln, i) => (
-                      <div key={i + 1} className="quiz-code-line">
-                        <span className="line-num">{i + 1}</span>
-                        <span className="line-content">{highlightPythonLine(ln)}</span>
+                {(activeModule.prerequisites.length > 0 || nextTopics.length > 0) && (
+                  <div className="lesson-links-row">
+                    {activeModule.prerequisites.length > 0 && (
+                      <div className="lesson-link-group">
+                        <span className="muted-note">Builds on:</span>
+                        {activeModule.prerequisites.map((preId) => {
+                          const pre = moduleById.get(preId);
+                          if (!pre) return null;
+                          return (
+                            <button
+                              key={preId}
+                              className="jump-pill"
+                              onClick={() => setSelectedId(preId)}
+                            >
+                              {pre.title}
+                            </button>
+                          );
+                        })}
                       </div>
-                    ))}
+                    )}
+                    {nextTopics.length > 0 && (
+                      <div className="lesson-link-group">
+                        <span className="muted-note">Leads to:</span>
+                        {nextTopics.map((nxt) => (
+                          <button
+                            key={nxt.id}
+                            className="jump-pill"
+                            onClick={() => setSelectedId(nxt.id)}
+                          >
+                            {nxt.title} <ArrowRight size={11} style={{ verticalAlign: "middle" }} />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="concept-row">
+                  {activeModule.concepts.map((c) => (
+                    <span key={c} className="concept-chip">
+                      {c}
+                    </span>
+                  ))}
+                </div>
+
+                <ul className="lesson-bullets">
+                  {activeModule.lesson_points.map((pt) => (
+                    <li key={pt}>{pt}</li>
+                  ))}
+                </ul>
+
+                <div className="lesson-example-card">
+                  <div className="subcard-title" style={{ marginBottom: "6px" }}>
+                    <BookOpen size={14} />
+                    Interactive Example
+                  </div>
+                  <div className="quiz-code-box">
+                    {activeModule.example_code
+                      .trimEnd()
+                      .split("\n")
+                      .map((ln, i) => (
+                        <div key={i + 1} className="quiz-code-line">
+                          <span className="line-num">{i + 1}</span>
+                          <span className="line-content">{highlightPythonLine(ln)}</span>
+                        </div>
+                      ))}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="quiz-list">
-              {activeModule.quizzes.map((q) => (
-                <QuizCard
-                  key={q.id}
-                  question={q}
-                  savedState={progress.quizzes[q.id]}
-                  onOpenInStepper={onOpenInStepper}
-                  onProgressUpdate={setProgress}
-                />
-              ))}
+            <div className="learn-topic-quizzes">
+              <div className="quiz-column-header">
+                <strong>Practice Checks</strong>
+                <span className="muted-note">Zero-typing comprehension checks</span>
+              </div>
+              <div className="quiz-list">
+                {activeModule.quizzes.map((q) => (
+                  <QuizCard
+                    key={q.id}
+                    question={q}
+                    savedState={progress.quizzes[q.id]}
+                    onOpenInStepper={onOpenInStepper}
+                    onProgressUpdate={setProgress}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         ) : null}
