@@ -7,6 +7,7 @@ import {
   Compass,
   Cpu,
   Edit3,
+  GraduationCap,
   Play,
   Repeat,
   RotateCcw,
@@ -18,6 +19,7 @@ import { AiSettingsModal } from "./components/AiSettingsModal";
 import { CodeStepperPane } from "./components/CodeStepperPane";
 import { DockWindow } from "./components/DockWindow";
 import { FlowLoopsTab } from "./components/FlowLoopsTab";
+import { LearnModeView } from "./components/LearnModeView";
 import { MentorGlossaryTab } from "./components/MentorGlossaryTab";
 import { TerminalWindow } from "./components/TerminalWindow";
 import { TimelineControls } from "./components/TimelineControls";
@@ -81,6 +83,10 @@ export default function App() {
   const [llamaModels, setLlamaModels] = useState<string[]>([]);
   const [showAiSettings, setShowAiSettings] = useState<boolean>(false);
   const [traceFetchError, setTraceFetchError] = useState<string | null>(null);
+  const [appMode, setAppMode] = useState<"stepper" | "learn">("stepper");
+  const [masterySummary, setMasterySummary] = useState<{ mastered: number; total: number } | null>(
+    null
+  );
 
   const dragSourceRef = useRef<{ windowId: WindowId; fromSlot: SlotId } | null>(null);
   const leftColRef = useRef<HTMLDivElement>(null);
@@ -160,7 +166,7 @@ export default function App() {
   useEffect(() => {
     const total = trace?.frames.length ?? 0;
     function onKeyDown(e: KeyboardEvent) {
-      if (showAiSettings || isEditing || total === 0) return;
+      if (appMode !== "stepper" || showAiSettings || isEditing || total === 0) return;
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if (e.key === "ArrowLeft") {
@@ -178,7 +184,7 @@ export default function App() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isEditing, showAiSettings, trace]);
+  }, [appMode, isEditing, showAiSettings, trace]);
 
   const activePreset = presets.find((p) => p.id === activePresetId) ?? null;
   const frames = trace?.frames ?? [];
@@ -568,52 +574,80 @@ export default function App() {
           <span className="alpha-badge" title="Early Alpha release — verify AI explanations against the trace">
             Alpha v0.1
           </span>
-          <select
-            className="lesson-select"
-            value={activePresetId}
-            aria-label="Choose starter lesson"
-            onChange={(e) => {
-              const chosen = presets.find((p) => p.id === e.target.value);
-              if (!chosen) return;
-              setActivePresetId(chosen.id);
-              setCode(chosen.code);
-              setIsEditing(false);
-              void runTrace(chosen.code, chosen.id);
-            }}
-          >
-            {presets.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.difficulty}: {p.title} ({p.project_link})
-              </option>
-            ))}
-          </select>
+          <div className="mode-switcher" role="tablist" aria-label="Workspace mode">
+            <button
+              className={`mode-btn ${appMode === "stepper" ? "active" : ""}`}
+              onClick={() => setAppMode("stepper")}
+            >
+              <Code2 size={14} />
+              Stepper
+            </button>
+            <button
+              className={`mode-btn ${appMode === "learn" ? "active" : ""}`}
+              onClick={() => setAppMode("learn")}
+            >
+              <GraduationCap size={14} />
+              Learn &amp; Quiz
+            </button>
+          </div>
+          {appMode === "stepper" && (
+            <select
+              className="lesson-select"
+              value={activePresetId}
+              aria-label="Choose starter lesson"
+              onChange={(e) => {
+                const chosen = presets.find((p) => p.id === e.target.value);
+                if (!chosen) return;
+                setActivePresetId(chosen.id);
+                setCode(chosen.code);
+                setIsEditing(false);
+                void runTrace(chosen.code, chosen.id);
+              }}
+            >
+              {presets.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.difficulty}: {p.title} ({p.project_link})
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
-        <TimelineControls
-          currentStep={currentStep}
-          totalSteps={frames.length}
-          isPlaying={isPlaying}
-          speedMs={speedMs}
-          onStepChange={(step) => {
-            setIsPlaying(false);
-            setCurrentStep(step);
-          }}
-          onTogglePlay={() => setIsPlaying((p) => !p)}
-          onSpeedChange={setSpeedMs}
-        />
+        {appMode === "stepper" ? (
+          <TimelineControls
+            currentStep={currentStep}
+            totalSteps={frames.length}
+            isPlaying={isPlaying}
+            speedMs={speedMs}
+            onStepChange={(step) => {
+              setIsPlaying(false);
+              setCurrentStep(step);
+            }}
+            onTogglePlay={() => setIsPlaying((p) => !p)}
+            onSpeedChange={setSpeedMs}
+          />
+        ) : (
+          <div className="learn-topbar-summary">
+            <span>
+              Tier 0 Placement + Tier 1 Python Syllabus
+              {masterySummary ? ` · ${masterySummary.mastered}/${masterySummary.total} Modules Mastered` : ""}
+            </span>
+          </div>
+        )}
 
         <div className="topbar-right">
-          {hiddenWindows.map((w) => (
-            <button
-              key={w}
-              className="icon-btn"
-              onClick={() => handleRestoreWindow(w)}
-              title={`Restore ${WINDOW_TITLES[w]}`}
-            >
-              + {WINDOW_TITLES[w].split(/[ ,]/)[0]}
-            </button>
-          ))}
-          {isCustomLayout && (
+          {appMode === "stepper" &&
+            hiddenWindows.map((w) => (
+              <button
+                key={w}
+                className="icon-btn"
+                onClick={() => handleRestoreWindow(w)}
+                title={`Restore ${WINDOW_TITLES[w]}`}
+              >
+                + {WINDOW_TITLES[w].split(/[ ,]/)[0]}
+              </button>
+            ))}
+          {appMode === "stepper" && isCustomLayout && (
             <button
               className="icon-btn"
               onClick={() => {
@@ -643,94 +677,108 @@ export default function App() {
         </div>
       </header>
 
-      {activePreset && (
-        <section className="lesson-brief">
-          <div className="lesson-brief-head">
-            <div className="lesson-brief-title">
-              <Compass size={15} className="brief-icon" />
-              <strong>
-                {activePreset.difficulty} — {activePreset.title}
-              </strong>
-              <span className="brief-tag">{activePreset.project_link}</span>
-              {!showBrief && (
-                <span className="brief-inline-preview">{activePreset.summary}</span>
-              )}
-            </div>
-            <button
-              className="icon-btn-ghost"
-              onClick={() => setShowBrief((v) => !v)}
-              aria-label={showBrief ? "Collapse lesson brief" : "Expand lesson brief"}
-            >
-              {showBrief ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-            </button>
-          </div>
-          {showBrief && (
-            <div className="lesson-brief-body">
-              <p className="brief-desc">{activePreset.summary}</p>
-              <p className="brief-focus">
-                <strong>Focus on:</strong> {activePreset.watch_for}
-              </p>
-            </div>
-          )}
-        </section>
-      )}
-
-      {(traceFetchError || trace?.error) && (
-        <div className="error-banner">
-          <strong>Execution Notice:</strong> {traceFetchError ?? trace?.error}
-        </div>
-      )}
-
-      {layout.maximized && maximizedSlot ? (
-        <main className="dock-maximized-stage">
-          {renderSlot(maximizedSlot, layout.maximized)}
-        </main>
+      {appMode === "learn" ? (
+        <LearnModeView
+          onOpenInStepper={(snippet) => {
+            setCode(snippet);
+            setIsEditing(false);
+            setAppMode("stepper");
+            void runTrace(snippet);
+          }}
+          onMasterySummaryChange={(mastered, total) => setMasterySummary({ mastered, total })}
+        />
       ) : (
-        <main className="dock-workspace">
-          {renderColumn(
-            leftColRef,
-            "leftTop",
-            "leftBottom",
-            layout.leftTopPct,
-            "leftSplit",
-            layout.leftWidthPx
+        <>
+          {activePreset && (
+            <section className="lesson-brief">
+              <div className="lesson-brief-head">
+                <div className="lesson-brief-title">
+                  <Compass size={15} className="brief-icon" />
+                  <strong>
+                    {activePreset.difficulty} — {activePreset.title}
+                  </strong>
+                  <span className="brief-tag">{activePreset.project_link}</span>
+                  {!showBrief && (
+                    <span className="brief-inline-preview">{activePreset.summary}</span>
+                  )}
+                </div>
+                <button
+                  className="icon-btn-ghost"
+                  onClick={() => setShowBrief((v) => !v)}
+                  aria-label={showBrief ? "Collapse lesson brief" : "Expand lesson brief"}
+                >
+                  {showBrief ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                </button>
+              </div>
+              {showBrief && (
+                <div className="lesson-brief-body">
+                  <p className="brief-desc">{activePreset.summary}</p>
+                  <p className="brief-focus">
+                    <strong>Focus on:</strong> {activePreset.watch_for}
+                  </p>
+                </div>
+              )}
+            </section>
           )}
 
-          {hasLeft && (hasCenter || hasRight) && (
-            <div
-              className="splitter-v"
-              onMouseDown={(e) => startResize("left", e)}
-              title="Drag left or right to resize column"
-            />
+          {(traceFetchError || trace?.error) && (
+            <div className="error-banner">
+              <strong>Execution Notice:</strong> {traceFetchError ?? trace?.error}
+            </div>
           )}
 
-          {renderColumn(
-            centerColRef,
-            "centerTop",
-            "centerBottom",
-            layout.centerTopPct,
-            "centerSplit",
-            undefined,
-            true
-          )}
+          {layout.maximized && maximizedSlot ? (
+            <main className="dock-maximized-stage">
+              {renderSlot(maximizedSlot, layout.maximized)}
+            </main>
+          ) : (
+            <main className="dock-workspace">
+              {renderColumn(
+                leftColRef,
+                "leftTop",
+                "leftBottom",
+                layout.leftTopPct,
+                "leftSplit",
+                layout.leftWidthPx
+              )}
 
-          {hasCenter && hasRight && (
-            <div
-              className="splitter-v"
-              onMouseDown={(e) => startResize("right", e)}
-              title="Drag left or right to resize column"
-            />
-          )}
+              {hasLeft && (hasCenter || hasRight) && (
+                <div
+                  className="splitter-v"
+                  onMouseDown={(e) => startResize("left", e)}
+                  title="Drag left or right to resize column"
+                />
+              )}
 
-          {renderColumn(
-            rightColRef,
-            "rightTop",
-            "rightBottom",
-            layout.rightTopPct,
-            "rightSplit",
-            layout.rightWidthPx
+              {renderColumn(
+                centerColRef,
+                "centerTop",
+                "centerBottom",
+                layout.centerTopPct,
+                "centerSplit",
+                undefined,
+                true
+              )}
+
+              {hasCenter && hasRight && (
+                <div
+                  className="splitter-v"
+                  onMouseDown={(e) => startResize("right", e)}
+                  title="Drag left or right to resize column"
+                />
+              )}
+
+              {renderColumn(
+                rightColRef,
+                "rightTop",
+                "rightBottom",
+                layout.rightTopPct,
+                "rightSplit",
+                layout.rightWidthPx
+              )}
+            </main>
           )}
-        </main>
+        </>
       )}
 
       <AiSettingsModal

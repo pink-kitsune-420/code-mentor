@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -12,8 +12,27 @@ from pydantic import BaseModel
 from mentor import __version__
 from mentor.ast_glossary import GlossarySpan, build_ast_glossary
 from mentor.config import PROJECT_ROOT
-from mentor.db import get_ai_config, init_db, record_trace_run, save_ai_config
-from mentor.llm_client import check_llama_health, explain_trace_step
+from mentor.curriculum import (
+    PLACEMENT_QUESTIONS,
+    get_all_modules,
+    get_quiz_by_id,
+    grade_deterministic_answer,
+)
+from mentor.db import (
+    get_ai_config,
+    get_curriculum_progress,
+    init_db,
+    record_trace_run,
+    reset_curriculum_progress,
+    save_ai_config,
+    save_module_mastery,
+    save_quiz_result,
+)
+from mentor.llm_client import (
+    check_llama_health,
+    explain_trace_step,
+    grade_plain_english_with_ai,
+)
 from mentor.presets import PresetLesson, get_presets
 from mentor.tracer import TraceFrame, TraceResult, trace_python_code
 
@@ -69,6 +88,14 @@ class AiConfigUpdateRequest(BaseModel):
 class AiConfigTestRequest(BaseModel):
     provider_url: str
     api_key: str | None = None
+
+
+class QuizAnswerRequest(BaseModel):
+    quiz_id: str
+    selected_index: int | None = None
+    selected_line: int | None = None
+    ordered_indices: list[int] | None = None
+    explanation_text: str | None = None
 
 
 def _public_ai_config(cfg: dict[str, object]) -> AiConfigPublic:
@@ -154,6 +181,80 @@ async def explain_step_endpoint(req: ExplainStepRequest) -> dict[str, str | bool
         question=req.question,
         model=req.model,
     )
+
+
+@app.get("/api/curriculum")
+def read_curriculum() -> dict[str, object]:
+    """Return Tier 0 placement questions, Tier 1 modules, and saved progress."""
+    return {
+        "placement": [q.model_dump() for q in PLACEMENT_QUESTIONS],
+        "modules": [m.model_dump() for m in get_all_modules()],
+        "progress": get_curriculum_progress(),
+    }
+
+
+@app.post("/api/curriculum/answer")
+async def submit_quiz_answer(req: QuizAnswerRequest) -> dict[str, object]:
+    """Grade a placement or Tier 1 quiz answer and update SQLite mastery progress."""
+    module_id, question = get_quiz_by_id(req.quiz_id)
+    if question is None:
+        raise HTTPException(status_code=404, detail=f"Unknown quiz_id '{req.quiz_id}'")
+
+    result: dict[str, object] | None = None
+    if question.kind == "explain" and len((req.explanation_text or "").strip()) >= 8:
+        result = await grade_plain_english_with_ai(
+            prompt_question=question.prompt,
+            code=question.code,
+            sample_explanation=question.sample_explanation,
+            user_answer=req.explanation_text or "",
+        )
+
+    if result is None:
+        result = grade_deterministic_answer(
+            question,
+            selected_index=req.selected_index,
+            selected_line=req.selected_line,
+            ordered_indices=req.ordered_indices,
+            explanation_text=req.explanation_text,
+        )
+
+    save_quiz_result(
+        quiz_id=question.id,
+        module_id=module_id,
+        correct=bool(result["correct"]),
+        score=float(result["score"]),
+    )
+
+    progress = get_curriculum_progress()
+    if module_id is not None:
+        mod = next((m for m in get_all_modules() if m.id == module_id), None)
+        if mod is not None:
+            quiz_map = progress["quizzes"]
+            assert isinstance(quiz_map, dict)
+            total = len(mod.quizzes)
+            earned = sum(
+                float(quiz_map[q.id]["score"])
+                for q in mod.quizzes
+                if q.id in quiz_map
+            )
+            avg = earned / max(1, total)
+            completed_all = all(q.id in quiz_map and bool(quiz_map[q.id]["correct"]) for q in mod.quizzes)
+            status = "mastered" if completed_all else "in_progress"
+            save_module_mastery(concept_id=module_id, status=status, score=round(avg, 2))
+            progress = get_curriculum_progress()
+
+    return {
+        **result,
+        "module_id": module_id,
+        "progress": progress,
+    }
+
+
+@app.post("/api/curriculum/reset")
+def reset_curriculum() -> dict[str, object]:
+    """Reset all curriculum progress."""
+    reset_curriculum_progress()
+    return {"progress": get_curriculum_progress()}
 
 
 FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"

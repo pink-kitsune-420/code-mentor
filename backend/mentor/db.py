@@ -45,6 +45,14 @@ def init_db(db_path: Path | None = None) -> None:
                 value TEXT NOT NULL,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
+
+            CREATE TABLE IF NOT EXISTS quiz_results (
+                quiz_id TEXT PRIMARY KEY,
+                module_id TEXT,
+                correct INTEGER NOT NULL,
+                score REAL NOT NULL,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
             """
         )
 
@@ -120,3 +128,76 @@ def save_ai_config(
             items,
         )
     return get_ai_config(db_path)
+
+
+def save_quiz_result(
+    *,
+    quiz_id: str,
+    module_id: str | None,
+    correct: bool,
+    score: float,
+    db_path: Path | None = None,
+) -> None:
+    """Persist an individual quiz result."""
+    init_db(db_path)
+    with get_connection(db_path) as conn:
+        conn.execute(
+            """
+            INSERT INTO quiz_results (quiz_id, module_id, correct, score, updated_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(quiz_id) DO UPDATE SET
+                module_id = excluded.module_id,
+                correct = excluded.correct,
+                score = excluded.score,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (quiz_id, module_id, int(correct), float(score)),
+        )
+
+
+def save_module_mastery(
+    *,
+    concept_id: str,
+    status: str,
+    score: float,
+    db_path: Path | None = None,
+) -> None:
+    """Persist module mastery status and score."""
+    init_db(db_path)
+    with get_connection(db_path) as conn:
+        conn.execute(
+            """
+            INSERT INTO mastery_progress (concept_id, status, score, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(concept_id) DO UPDATE SET
+                status = excluded.status,
+                score = excluded.score,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (concept_id, status, float(score)),
+        )
+
+
+def get_curriculum_progress(db_path: Path | None = None) -> dict[str, object]:
+    """Return all saved module mastery statuses and individual quiz outcomes."""
+    init_db(db_path)
+    mastery: dict[str, dict[str, object]] = {}
+    quizzes: dict[str, dict[str, object]] = {}
+    with get_connection(db_path) as conn:
+        for row in conn.execute("SELECT concept_id, status, score FROM mastery_progress").fetchall():
+            mastery[row["concept_id"]] = {"status": row["status"], "score": row["score"]}
+        for row in conn.execute("SELECT quiz_id, module_id, correct, score FROM quiz_results").fetchall():
+            quizzes[row["quiz_id"]] = {
+                "module_id": row["module_id"],
+                "correct": bool(row["correct"]),
+                "score": row["score"],
+            }
+    return {"mastery": mastery, "quizzes": quizzes}
+
+
+def reset_curriculum_progress(db_path: Path | None = None) -> None:
+    """Clear saved quiz results and module mastery."""
+    init_db(db_path)
+    with get_connection(db_path) as conn:
+        conn.execute("DELETE FROM quiz_results")
+        conn.execute("DELETE FROM mastery_progress")

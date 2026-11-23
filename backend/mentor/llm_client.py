@@ -145,3 +145,69 @@ async def explain_trace_step(
             "model": chosen_model,
             "explanation": f"AI endpoint ({v1_base}) could not respond: {exc}",
         }
+
+
+async def grade_plain_english_with_ai(
+    *,
+    prompt_question: str,
+    code: str,
+    sample_explanation: str,
+    user_answer: str,
+) -> dict[str, object] | None:
+    """Grade a learner's plain-English explanation using the configured AI, or None if unavailable."""
+    cfg = get_ai_config()
+    if not bool(cfg["enabled"]):
+        return None
+
+    v1_base = normalize_v1_base(str(cfg["provider_url"]))
+    if not v1_base:
+        return None
+
+    chosen_model = str(cfg["default_model"])
+    key = str(cfg["api_key"])
+    system_msg = (
+        "You are grading a beginner programmer's plain-English mental model. "
+        "Be encouraging and accurate. Respond ONLY with valid JSON: "
+        '{"correct": true|false, "feedback": "1-2 concise sentences comparing their answer to the key concept."}'
+    )
+    user_msg = (
+        f"QUESTION: {prompt_question}\n"
+        f"CODE:\n{code}\n"
+        f"REFERENCE_CONCEPT: {sample_explanation}\n"
+        f"STUDENT_ANSWER: {user_answer}"
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            resp = await client.post(
+                f"{v1_base}/chat/completions",
+                headers=_auth_headers(key),
+                json={
+                    "model": chosen_model,
+                    "messages": [
+                        {"role": "system", "content": system_msg},
+                        {"role": "user", "content": user_msg},
+                    ],
+                    "temperature": 0.1,
+                    "max_tokens": 200,
+                },
+            )
+            resp.raise_for_status()
+            raw_content = strip_thinking_tags(resp.json()["choices"][0]["message"]["content"])
+            match = re.search(r"\{.*\}", raw_content, flags=re.DOTALL)
+            if not match:
+                return None
+            parsed = json.loads(match.group(0))
+            correct = bool(parsed.get("correct", False))
+            feedback = str(parsed.get("feedback", "")).strip()
+            if not feedback:
+                return None
+            return {
+                "correct": correct,
+                "score": 1.0 if correct else 0.5,
+                "feedback": feedback,
+                "expected": sample_explanation,
+                "ai_graded": True,
+            }
+    except (httpx.HTTPError, KeyError, IndexError, ValueError, json.JSONDecodeError):
+        return None
