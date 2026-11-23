@@ -68,15 +68,6 @@ export function MentorGlossaryTab({
 
   return (
     <div className="tab-stack">
-      <div className="ai-disclaimer-box">
-        <AlertTriangle size={15} className="disclaimer-icon" />
-        <div>
-          <strong>Alpha Software — Verify AI Answers:</strong> AI models are not 100% accurate.
-          Always pair AI explanations with the deterministic execution trace, Visual Memory Boxes,
-          and your own reading/research before treating anything as fact.
-        </div>
-      </div>
-
       <section className="subcard">
         <div className="subcard-header-row">
           <span className="subcard-title">
@@ -159,7 +150,15 @@ export function MentorGlossaryTab({
           </p>
         ) : null}
 
-        {explanation && <div className="narrator-reply">{explanation}</div>}
+        {explanation && (
+          <div className="narrator-reply-wrap">
+            <div className="narrator-reply">{explanation}</div>
+            <div className="ai-inline-warning">
+              <AlertTriangle size={12} className="disclaimer-icon" />
+              <span>AI can be wrong—verify against the trace &amp; your own research.</span>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="subcard">
